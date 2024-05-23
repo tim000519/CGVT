@@ -81,9 +81,17 @@ class CMDPadCollate(object):
         return padded
 
     def pad_collate(self, batch):
+        # print('batch x: ', batch[0][0])
+        # print('batch k: ', batch[0][1])
+        # print('batch n: ', batch[0][2])
+        # print('m : ', batch[0][3])
+        # print('batch y: ', batch[0][4])
+        # print('batch c: ', batch[0][5])
+        
 
         xs = [torch.from_numpy(b[0]) for b in batch]
         ks = [torch.from_numpy(b[1]) for b in batch]
+        # print('KS : ', ks)
         ns = [torch.from_numpy(b[2]) for b in batch]
         ms = [torch.from_numpy(b[3]) for b in batch]
         ys = [torch.from_numpy(b[4]) for b in batch]
@@ -99,6 +107,13 @@ class CMDPadCollate(object):
             self.pad_matrix(x, pad=ys.size(1), pad_dim=1), ms)
         ms = nn.utils.rnn.pad_sequence(list(ms), batch_first=True)
         ks = torch.stack(list(ks), dim=0)
+        # print('xs: ', xs)
+        # print('ys: ', ys)
+        # print('ns: ', ns)
+        # print('ms: ', ms)
+        # print('ks: ', ks)
+        # print('KS2: ', ks)
+
         cs = torch.stack(list(cs), dim=0)
 
         return xs, ks, ns, ms, ys, cs

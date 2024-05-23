@@ -31,7 +31,7 @@ def main(dataset=None,
          exp_name=None,
          checkpoint_num=0,
          device_num=0,
-         batch_size=16, # 128
+         batch_size=2, # 128
          batch_size_val=4, # 128 
          total_epoch=20,
          hidden=256,
@@ -72,7 +72,9 @@ def main(dataset=None,
 
     train_len = len(train_x)
     val_len = len(val_x)
-    step_size = int(np.ceil(train_len / batch_size))
+    step_size = 1
+    # int(np.ceil(train_len / batch_size))
+    # print('train_k : ', train_k)
 
     _time0 = time.time()
     load_data_time = np.round(_time0 - start_time, 3)
@@ -130,7 +132,7 @@ def main(dataset=None,
 
     generator = DataLoader(
         train_dataset, batch_size=batch_size, num_workers=4, 
-        collate_fn=PadCollate(), shuffle=True, drop_last=True, pin_memory=False)
+        collate_fn=PadCollate(), shuffle=False, drop_last=True, pin_memory=False) #여기
     generator_val = DataLoader(
         val_dataset, batch_size=batch_size_val, num_workers=0, 
         collate_fn=PadCollate(), shuffle=False, pin_memory=False)
@@ -144,6 +146,8 @@ def main(dataset=None,
 
             # load batch
             x, k, n, m, y, clab = sample
+            
+            # print('KKKK :  ', k)
             # x, k, n, m, y, clab = next(iter(generator))
             x = x.long().to(device)
             k = k.float().to(device)
@@ -187,6 +191,7 @@ def main(dataset=None,
 
             elif exp_name == "VTHarm":
                 # forward
+                # print('K : ', k)
                 c_moments, c, chord, kq_attn = model(x, k, n, m, y) 
 
                 # compute loss 

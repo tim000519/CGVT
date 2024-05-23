@@ -597,7 +597,7 @@ def make_pianorolls_with_onset(notes, measures, measures_dict, inds, chord_type=
             onset_roll[start, 1] = 1 
             onset_roll_xml[start, 1] = 1
     
-    return note_roll, chord_roll, gen_roll, beat_roll, onset_roll, onset_roll_xml, note_ind_onset
+    return note_roll, chord_roll, key_roll, beat_roll, onset_roll, onset_roll_xml, note_ind_onset # 여기
 
 def get_roll_CMD(features, chord_type=None):
     '''

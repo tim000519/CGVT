@@ -309,17 +309,36 @@ class MelodyEncoder(nn.Module):
             [TransformerBlock(hidden, attn_heads, device=device) for _ in range(n_layers)])
 
     def forward(self, x, k, nm, cm):
-        # embeddings
-        x_norm = torch.where(x==88, torch.ones_like(x)*12, (x + 21) % 12)
-        emb = self.embedding(x_norm) + self.frame_pos(x)
+        # embeddings 
+        # print('x : ', x)
+        
+        # 88 : 쉼표
+        # x_norm -> 12음표 + 쉼표로 처리
+        x_norm = torch.where(x==88, torch.ones_like(x)*12, (x + 21) % 12) #[2, 128]
+        # print('xnorm : ', x_norm.shape)        
+        
+        emb = self.embedding(x_norm) + self.frame_pos(x) # [2,128,128]
+        
         # note-wise encode
-        note = self.comp.mean(emb, nm) # roll2note
-        note = self.linear(note)
-        note = torch.cat([k.unsqueeze(1), note], dim=1)
-        note = note + self.pos(note)
-        note = self.pos_dropout(note)
-        cm_ = torch.cat([cm[:,:1], cm], dim=1)
-        key_mask = self.mask.attn_noncausal_mask(cm_, attn_heads=self.h)
+        note = self.comp.mean(emb, nm) # roll2note # [2, 43, 128]
+        note = self.linear(note) # [2, 43, 256]
+        
+        note = torch.cat([k.unsqueeze(1), note], dim=1) # [2, 44, 256]
+        # note = torch.cat([g.unsqueeze(1), note], dim=1) # [2, 44, 256]
+        
+        note = note + self.pos(note) # [2, 44, 256]
+        note = self.pos_dropout(note) # [2, 44, 256]
+        cm_ = torch.cat([cm[:,:1], cm], dim=1) #[2, 44, 16] 
+        
+        # cm_ = torch.cat([cm[:,:2], cm], dim=1) #[2, 45, 16] 
+
+        # print('cm_ : ', cm_)   
+        # print('cm_ : ', cm_.shape)   
+        
+        key_mask = self.mask.attn_noncausal_mask(cm_, attn_heads=self.h) #[2,4,44,44]
+        # print('key_mask : ', key_mask) 
+        # print('key_mask : ', key_mask.shape) 
+        
         # self-attention
         for transformer in self.transformer_blocks:
             note = transformer.forward(note, mask=key_mask)
@@ -341,12 +360,22 @@ class ContextEncoder(nn.Module):
         self.mu = nn.Linear(hidden*2, z_dim)
         self.logvar = nn.Linear(hidden*2, z_dim) 
 
-    def forward(self, x, m, k, cm):
+    def forward(self, x, m, k, cm):  #이 때 k는 nn.embedding을 거친 후이다. -> [2,256]
+        # print('k.shape : ', k.shape)
+        # print('x.shape : ', x.shape)
+        # print('cm.shape : ', cm.shape)
+        
         x = torch.cat([k.unsqueeze(1), x], dim=1)
+        # x = torch.cat([g.unsqueeze(1), x], dim=1)
+        
         out = x + self.pos(x)
         out = self.pos_dropout(out)
         cm_ = torch.cat([cm[:,:1], cm], dim=1)
+        # cm_ = torch.cat([cm[:,:2], cm], dim=1)
+        
         query_mask = self.mask.attn_noncausal_mask(cm_, attn_heads=self.h)
+        # print('x.shape : ', x.shape)
+        # print('cm_.shape : ', cm_.shape)
         # self-attention
         for transformer in self.transformer_blocks:
             out = transformer.forward(out, mask=query_mask)
@@ -357,7 +386,10 @@ class ContextEncoder(nn.Module):
         mu = self.mu(out)
         logvar = self.logvar(out)
         epsilon = torch.randn_like(logvar)
-        c = mu + torch.exp(0.5 * logvar) * epsilon # [batch, z_dim]
+        c = mu + torch.exp(0.5 * logvar) * epsilon # [batch, z_dim] c : 16차원
+        # print('CCCCC : ', c)
+        # print('CCCmu : ', mu)
+        # print('KKKKK : ', k)
         return [mu, logvar], c
 
 class Generate(nn.Module):
@@ -414,10 +446,10 @@ class Harmonizer(nn.Module):
         self.device = device
 
         # layers
-        self.melody_encoder = MelodyEncoder(m_dim=m_dim, hidden=hidden, 
+        self.melody_encoder = MelodyEncoder(m_dim=m_dim, hidden=hidden,  #89 -> 256
             attn_heads=attn_heads, n_layers=n_layers, device=device)
-        self.key_embedding = nn.Embedding(4, hidden)
-        self.chord_embedding = nn.Embedding(c_dim, hidden)
+        self.key_embedding = nn.Embedding(24, hidden)
+        self.chord_embedding = nn.Embedding(c_dim, hidden) #73 -> 256
         self.proj_c = nn.Linear(z_dim, hidden, bias=False)
         self.context_encoder = ContextEncoder(z_dim=z_dim, hidden=hidden, 
             attn_heads=attn_heads, n_layers=1, device=device)
@@ -427,10 +459,13 @@ class Harmonizer(nn.Module):
     def forward(self, x, k, note_m, chord_m, chord):
         # prepare data
         n = x.size(0)
-        
+        # print('x : ', x)
+        # print('x : ', x.shape) [2,128(16*8마디)]
+        print('chord_m : ', chord_m)
+        print('chord_ms : ', chord_m.shape)
         ## Encoder ##
-        k_emb = self.key_embedding(k.long())
-        query = self.chord_embedding(chord)
+        k_emb = self.key_embedding(k.long()) # [batch, 256]
+        query = self.chord_embedding(chord) # [batch, 256]
         key, key_attn = self.melody_encoder(x, k_emb, note_m, chord_m)
         c_moments, c = self.context_encoder(query, key, k_emb, chord_m.transpose(1, 2))
         
