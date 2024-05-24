@@ -31,9 +31,9 @@ def main(dataset=None,
          exp_name=None,
          checkpoint_num=0,
          device_num=0,
-         batch_size=2, # 128
+         batch_size=16, # 128
          batch_size_val=4, # 128 
-         total_epoch=20,
+         total_epoch=1,
          hidden=256,
          n_layers=4):
 
@@ -62,6 +62,7 @@ def main(dataset=None,
         train_n = np.asarray(f["n"])
         train_m = np.asarray(f["m"])
         train_y = np.asarray(f["y"])
+        train_g = np.asarray(f["g"])
         
     with h5py.File(val_data, "r") as f:
         val_x = np.asarray(f["x"])
@@ -69,6 +70,7 @@ def main(dataset=None,
         val_n = np.asarray(f["n"])
         val_m = np.asarray(f["m"])
         val_y = np.asarray(f["y"])
+        val_g = np.asarray(f["g"])
 
     train_len = len(train_x)
     val_len = len(val_x)
@@ -126,9 +128,9 @@ def main(dataset=None,
 
     # load data loader
     train_dataset = CustomDataset(
-        train_x, train_k, train_n, train_m, train_y, device=device)
+        train_x, train_k, train_n, train_m, train_y, train_g, device=device)
     val_dataset = CustomDataset(
-        val_x, val_k, val_n, val_m, val_y, device=device)
+        val_x, val_k, val_n, val_m, val_y, val_g, device=device)
 
     generator = DataLoader(
         train_dataset, batch_size=batch_size, num_workers=4, 
@@ -145,7 +147,7 @@ def main(dataset=None,
         for step, sample in enumerate(generator):
 
             # load batch
-            x, k, n, m, y, clab = sample
+            x, k, n, m, y, g, clab = sample
             
             # print('KKKK :  ', k)
             # x, k, n, m, y, clab = next(iter(generator))
@@ -154,6 +156,7 @@ def main(dataset=None,
             n = n.float().to(device)
             m = m.float().to(device)
             y = y.long().to(device)
+            g = g.float().to(device)
             clab = clab.float().to(device)
 
             step += 1         
@@ -192,7 +195,7 @@ def main(dataset=None,
             elif exp_name == "VTHarm":
                 # forward
                 # print('K : ', k)
-                c_moments, c, chord, kq_attn = model(x, k, n, m, y) 
+                c_moments, c, chord, kq_attn = model(x, k, n, m, y, g) 
 
                 # compute loss 
                 mask = Mask()
@@ -266,12 +269,13 @@ def main(dataset=None,
 
         model.eval()
 
-        Xv, Kv, Nv, Mv, Yv, CLABv = next(iter(generator_val))
+        Xv, Kv, Nv, Mv, Yv, Gv, CLABv = next(iter(generator_val))
         Xv = Xv.long().to(device)
         Kv = Kv.float().to(device)
         Nv = Nv.float().to(device)
         Mv = Mv.float().to(device)
         Yv = Yv.long().to(device)
+        Gv = Gv.float().to(device)
         CLABv = CLABv.float().to(device)
 
         if exp_name == "STHarm":
@@ -296,10 +300,10 @@ def main(dataset=None,
 
         elif exp_name == "VTHarm":
             # forward
-            c_moments, c, chord, kq_attn = model(Xv, Kv, Nv, Mv, Yv) 
+            c_moments, c, chord, kq_attn = model(Xv, Kv, Nv, Mv, Yv, Gv) 
 
             # generate
-            chord_, kq_attn_ = model.test(Xv, Kv, Nv, Mv)
+            chord_, kq_attn_ = model.test(Xv, Kv, Nv, Mv, Gv)
 
             # compute loss 
             mask = Mask()

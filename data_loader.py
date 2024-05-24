@@ -32,6 +32,7 @@ class CMDDataset(Dataset):
                  n=None,
                  m=None,
                  y=None,
+                 g=None,
                  device=None):
         manager = Manager()
         self.x = manager.list(x)
@@ -39,6 +40,7 @@ class CMDDataset(Dataset):
         self.n = manager.list(n)
         self.m = manager.list(m)
         self.y = manager.list(y)
+        self.g = manager.list(g)
         self.device = device
 
     def __len__(self):
@@ -51,15 +53,18 @@ class CMDDataset(Dataset):
         n = np.load(self.n[idx]).astype(np.float32)
         m = np.load(self.m[idx]).astype(np.float32)
         y = np.load(self.y[idx]).astype(np.float32)
+        g = np.load(self.g[idx]).astype(np.float32)
+        
 
         x_ = np.argmax(x, axis=-1)
         y_ = np.argmax(y, axis=-1) 
         k_ = np.asarray(np.argmax(k[0,:12], axis=-1))
+        g_ = np.asarray(np.argmax(g[0,:2], axis=-1))
 
         # c label
         clab_ = np.asarray(len(np.unique(y_))) # number of chords
 
-        return x_, k_, n, m, y_, clab_
+        return x_, k_, n, m, y_, g_, clab_
 
 class CMDPadCollate(object):
     '''
@@ -95,7 +100,8 @@ class CMDPadCollate(object):
         ns = [torch.from_numpy(b[2]) for b in batch]
         ms = [torch.from_numpy(b[3]) for b in batch]
         ys = [torch.from_numpy(b[4]) for b in batch]
-        cs = [torch.from_numpy(b[5]) for b in batch]
+        gs = [torch.from_numpy(b[5]) for b in batch]
+        cs = [torch.from_numpy(b[6]) for b in batch]
 
         # stack all
         xs = nn.utils.rnn.pad_sequence(xs, batch_first=True, padding_value=88)
@@ -107,6 +113,7 @@ class CMDPadCollate(object):
             self.pad_matrix(x, pad=ys.size(1), pad_dim=1), ms)
         ms = nn.utils.rnn.pad_sequence(list(ms), batch_first=True)
         ks = torch.stack(list(ks), dim=0)
+        gs = torch.stack(list(gs), dim=0)
         # print('xs: ', xs)
         # print('ys: ', ys)
         # print('ns: ', ns)
@@ -116,7 +123,7 @@ class CMDPadCollate(object):
 
         cs = torch.stack(list(cs), dim=0)
 
-        return xs, ks, ns, ms, ys, cs
+        return xs, ks, ns, ms, ys, gs, cs
 
     def __call__(self, batch):
         return self.pad_collate(batch)

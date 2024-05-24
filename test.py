@@ -33,11 +33,13 @@ class TruncatedNorm(nn.Module):
 class TestData(object):
     def __init__(self, 
                  dataset=None,
+                 song_gen = None,
                  song_ind=None,
                  start_point=None,
                  maxlen=16):
         super(TestData, self).__init__()
 
+        song_gen = song_gen
         self.test_parent_path = None 
         self.features = None 
         self.data = None
@@ -49,6 +51,7 @@ class TestData(object):
         self.m2 = None 
         self.test_notes = None 
         self.key_sig = None
+        self.gen = None
 
         if dataset == "CMD":
             self.test_parent_path = sep.join([".","CMD","exp","test","raw"])
@@ -57,7 +60,7 @@ class TestData(object):
             test_song = test_song_lists[song_ind]
             self.test_name = test_song
             data_parent_path = sep.join([".","CMD","dataset"])
-            xml = sorted(glob(os.path.join(data_parent_path, test_song, '*.xml')))[0]
+            xml = sorted(glob(os.path.join(data_parent_path, test_song, '*.xml')))[0] # 0이면 a
             print(xml)
             self.features = parse_CMD_features(xml)
             xmlDoc = MusicXMLDocument(xml)
@@ -79,7 +82,7 @@ class TestData(object):
     def CMD_data(self, features, xml_notes, start_point, maxlen):
 
         # get onehot data
-        inp, oup, key, beat, onset, onset_xml, inds = get_roll_CMD(features, chord_type="simple")
+        inp, oup, gen, key, beat, onset, onset_xml, inds = get_roll_CMD(features, chord_type="simple")
 
         # get indices where new chord
         new_chord_ind = list()
@@ -117,11 +120,13 @@ class TestData(object):
 
         test_x = x_pitch
         test_k = self.key_sig
+        print(test_k)
         test_m = _m
         test_n = _n
+        test_g = np.asarray(song_gen)
         test_y = y_chord
 
-        self.test_batches = [test_x, test_k, test_m, test_n, test_y]
+        self.test_batches = [test_x, test_k, test_m, test_n, test_g, test_y]
         self.m2 = _m2 
         self.test_notes = test_notes 
 
@@ -177,6 +182,7 @@ def test_model(dataset=None,
                song_ind=None, 
                exp_name=None,
                device_num=None,
+               song_gen = None,
                lamb=None, 
                start_point=None,
                maxlen=16):
@@ -190,6 +196,7 @@ def test_model(dataset=None,
     test_data = TestData(dataset=dataset,
                          song_ind=song_ind,
                          start_point=start_point,
+                         song_gen = song_gen,
                          maxlen=maxlen)
     
     test_batch, _m2, test_notes = test_data()
@@ -218,11 +225,12 @@ def test_model(dataset=None,
     ## SAMPLE ##
     start_time = time.time()
     model.eval()
-    test_x, test_k, test_m, test_n, test_y = test_batch
+    test_x, test_k, test_m, test_n, test_g, test_y = test_batch
     test_x_ = torch.from_numpy(test_x.astype(np.int64)).to(device).unsqueeze(0)
     test_k_ = torch.from_numpy(test_k.astype(np.int64)).to(device).unsqueeze(0)
     test_m_ = torch.from_numpy(test_m.astype(np.float32)).to(device).unsqueeze(0)
     test_n_ = torch.from_numpy(test_n.astype(np.float32)).to(device).unsqueeze(0)
+    test_g  = torch.from_numpy(test_g.astype(np.int64)).to(device).unsqueeze(0)
     test_y_ = torch.from_numpy(test_y.astype(np.int64)).to(device).unsqueeze(0)    
     
     if exp_name == "STHarm":   
@@ -232,7 +240,7 @@ def test_model(dataset=None,
         # c_sampled = torch.randn_like(c)
         trunc = TruncatedNorm()
         c_sampled = torch.FloatTensor(trunc([1, 16], threshold=3.)).to(device)
-        chord_, kq_attn_ = model.test(test_x_, test_k_, test_n_, test_m_, c=c_sampled)
+        chord_, kq_attn_ = model.test(test_x_, test_k_, test_n_, test_m_, test_g, c=c_sampled)
 
     elif exp_name == "rVTHarm":   
         # c_sampled = torch.randn_like(c)
@@ -322,11 +330,12 @@ if __name__ == "__main__":
     start_point = int(sys.argv[3])
     exp_name = sys.argv[4]
     device_num = int(sys.argv[5])
+    song_gen = int(sys.argv[6])
     try:
-        lamb = int(sys.argv[6])
+        lamb = int(sys.argv[7])
     except IndexError:
         lamb = None
 
     test_model(
         dataset=dataset, song_ind=song_ind, start_point=start_point, 
-        exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
+        exp_name=exp_name, device_num=device_num, song_gen=song_gen, lamb=lamb, maxlen=16)

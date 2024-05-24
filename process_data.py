@@ -597,7 +597,7 @@ def make_pianorolls_with_onset(notes, measures, measures_dict, inds, chord_type=
             onset_roll[start, 1] = 1 
             onset_roll_xml[start, 1] = 1
     
-    return note_roll, chord_roll, key_roll, beat_roll, onset_roll, onset_roll_xml, note_ind_onset # 여기
+    return note_roll, chord_roll, gen_roll, key_roll, beat_roll, onset_roll, onset_roll_xml, note_ind_onset # 여기
 
 def get_roll_CMD(features, chord_type=None):
     '''
@@ -663,10 +663,10 @@ def get_roll_CMD(features, chord_type=None):
             else:
                 continue
         
-    note_roll, chord_roll, gen_roll, beat_roll, onset_roll, onset_roll_xml, note_ind_onset = \
+    note_roll, chord_roll, gen_roll, key_roll, beat_roll, onset_roll, onset_roll_xml, note_ind_onset = \
         make_pianorolls_with_onset(note_list, measure_list, measures, ind_list, chord_type=chord_type)
 
-    return note_roll, chord_roll, gen_roll, beat_roll, onset_roll, onset_roll_xml, note_ind_onset
+    return note_roll, chord_roll, gen_roll, key_roll, beat_roll, onset_roll, onset_roll_xml, note_ind_onset
 
 def get_roll_HLSD(features, chord_type=None):
 
@@ -881,7 +881,7 @@ def save_batches_CMD(chord_type='simple'):
                 #
                 #pdb.set_trace()    
                 #
-                inp, oup, key, beat, onset, onset_xml, inds = get_roll_CMD(features, chord_type=chord_type)
+                inp, oup, gen, key, beat, onset, onset_xml, inds = get_roll_CMD(features, chord_type=chord_type)
                 # get indices where new chord
                 # 새로운 코드가 나타나는 index를 뽑음
                 new_chord_ind = [i for i, c in enumerate(onset[:,1]) if c == 1]
@@ -964,12 +964,18 @@ def save_batches_CMD(chord_type='simple'):
                         c_name.lower(), p_name.lower(), ind)) # roll2note mat
                     savename_m = os.path.join(savepath, '{}.{}.batch_m.{}.npy'.format(
                         c_name.lower(), p_name.lower(), ind)) # note2chord mat
+                    savename_g = os.path.join(savepath, '{}.{}.batch_g.{}.npy'.format(
+                        c_name.lower(), p_name.lower(), ind))
+                    
+                    # print('gen : ', gen)
+                    # print('C : ', in4_)
 
                     np.save(savename_x, in1_)
                     np.save(savename_n, in2_)
                     np.save(savename_m, in3_)
                     np.save(savename_c, in4_)
                     np.save(savename_y, out1_)
+                    np.save(savename_g, gen)
 
                     print("saved batches for {} {} --> inp size: {} / oup size: {}      ".format(
                         c_name, p_name, in1_.shape, out1_.shape), end='\r') 
@@ -1096,6 +1102,7 @@ def create_h5_dataset(dataset=None, setname=None): # save npy files into one hdf
         x3_path = [np.string_(x) for x in sorted(glob(os.path.join(batch_path, "*.batch_n.*.npy")))]
         y1_path = [np.string_(y) for y in sorted(glob(os.path.join(batch_path, "*.batch_y.*.npy")))]
         x4_path = [np.string_(x) for x in sorted(glob(os.path.join(batch_path, "*.batch_c.*.npy")))]
+        x5_path = [np.string_(x) for x in sorted(glob(os.path.join(batch_path, "*.batch_g.*.npy")))]
 
         # save h5py dataset
         f = h5py.File("{}_{}.h5".format(dataset, setname), "w")
@@ -1105,6 +1112,7 @@ def create_h5_dataset(dataset=None, setname=None): # save npy files into one hdf
         f.create_dataset("n", data=x3_path, dtype=dt)
         f.create_dataset("c", data=x4_path, dtype=dt)
         f.create_dataset("y", data=y1_path, dtype=dt)
+        f.create_dataset("g", data=x5_path, dtype=dt)
 
         f.close()
 
