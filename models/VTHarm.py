@@ -453,7 +453,7 @@ class Harmonizer(nn.Module):
         self.melody_encoder = MelodyEncoder(m_dim=m_dim, hidden=hidden,  #89 -> 256
             attn_heads=attn_heads, n_layers=n_layers, device=device)
         self.key_embedding = nn.Embedding(24, hidden)
-        self.gen_embedding = nn.Embedding(2, hidden)
+        self.gen_embedding = nn.Embedding(3, hidden)
         self.chord_embedding = nn.Embedding(c_dim, hidden) #73 -> 256
         self.proj_c = nn.Linear(z_dim, hidden, bias=False)
         self.context_encoder = ContextEncoder(z_dim=z_dim, hidden=hidden, 

@@ -1070,6 +1070,46 @@ def save_new_midi(notes, ccs=None, new_midi_path=None, initial_tempo=120, progra
         new_inst.control_changes = ccs
     new_obj.instruments.append(new_inst)
     new_obj.write(new_midi_path)
+    
+def save_new_midi2(notes1,notes2,notes3, ccs=None, new_midi_path=None, initial_tempo=120, program=0, start_zero=False):
+    new_obj = pretty_midi.PrettyMIDI(resolution=10000, initial_tempo=initial_tempo)
+    new_inst = pretty_midi.Instrument(program=program)
+    
+    new_inst2 = pretty_midi.Instrument(program=program)
+    new_inst3 = pretty_midi.Instrument(program=program)
+    
+    if start_zero is True:
+        notes_ = make_midi_start_zero(notes1)
+    elif start_zero is False:
+        notes_ = notes1
+        
+    new_inst.notes = notes_
+    
+    if start_zero is True:
+        notes_2 = make_midi_start_zero(notes2)
+    elif start_zero is False:
+        notes_2 = notes2
+        
+    new_inst2.notes = notes_2
+    
+    if start_zero is True:
+        notes_3 = make_midi_start_zero(notes3)
+    elif start_zero is False:
+        notes_3 = notes3
+        
+    new_inst3.notes = notes_3
+    
+    if ccs is not None:
+        new_inst.control_changes = ccs
+        new_inst2.control_changes = ccs
+        new_inst3.control_changes = ccs
+        
+    new_obj.instruments.append(new_inst)
+    new_obj.instruments.append(new_inst2)
+    new_obj.instruments.append(new_inst3)
+   
+    
+    new_obj.write(new_midi_path)
 
 def make_midi_start_zero(notes):
     notes_start = np.min([n.start for n in notes])

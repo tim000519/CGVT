@@ -33,6 +33,7 @@ class TruncatedNorm(nn.Module):
 class TestData(object):
     def __init__(self, 
                  dataset=None,
+                 folder_ind=None,
                  song_gen = None,
                  song_ind=None,
                  start_point=None,
@@ -40,6 +41,7 @@ class TestData(object):
         super(TestData, self).__init__()
 
         song_gen = song_gen
+        folder_ind = folder_ind
         self.test_parent_path = None 
         self.features = None 
         self.data = None
@@ -54,12 +56,13 @@ class TestData(object):
         self.gen = None
 
         if dataset == "CMD":
-            self.test_parent_path = sep.join([".","CMD","exp","test","raw"])
+            subdir = ["_JAZZ", "_ROCK", "_ALL"]
+            self.test_parent_path = sep.join([".","CMD","exp","test","raw",subdir[folder_ind]])
             test_song_lists = [p.split("\\")[-2]\
                                for p in sorted(glob(os.path.join(self.test_parent_path, "*/")))]
             test_song = test_song_lists[song_ind]
             self.test_name = test_song
-            data_parent_path = sep.join([".","CMD","dataset"])
+            data_parent_path = sep.join([".","CMD","dataset",subdir[folder_ind]])
             xml = sorted(glob(os.path.join(data_parent_path, test_song, '*.xml')))[0] # 0이면 a
             print(xml)
             self.features = parse_CMD_features(xml)
@@ -82,7 +85,7 @@ class TestData(object):
     def CMD_data(self, features, xml_notes, start_point, maxlen):
 
         # get onehot data
-        inp, oup, gen, key, beat, onset, onset_xml, inds = get_roll_CMD(features, chord_type="simple")
+        inp, oup, gen, key, beat, onset, onset_xml, inds = get_roll_CMD(features, song_gen, chord_type="simple")
 
         # get indices where new chord
         new_chord_ind = list()
@@ -123,7 +126,7 @@ class TestData(object):
         print(test_k)
         test_m = _m
         test_n = _n
-        test_g = np.asarray(song_gen)
+        test_g = np.asarray(0) #여기
         test_y = y_chord
 
         self.test_batches = [test_x, test_k, test_m, test_n, test_g, test_y]
@@ -179,6 +182,7 @@ class TestData(object):
 
 
 def test_model(dataset=None, 
+               folder_ind=None,
                song_ind=None, 
                exp_name=None,
                device_num=None,
@@ -194,6 +198,7 @@ def test_model(dataset=None,
 
     ## LOAD DATA ##
     test_data = TestData(dataset=dataset,
+                         folder_ind=folder_ind,
                          song_ind=song_ind,
                          start_point=start_point,
                          song_gen = song_gen,
@@ -225,7 +230,15 @@ def test_model(dataset=None,
     ## SAMPLE ##
     start_time = time.time()
     model.eval()
-    test_x, test_k, test_m, test_n, test_g, test_y = test_batch
+    test_x, test_k, test_m, test_n, test_g, test_y = test_batch #여기서 test_g를 바꿔야함
+    
+    if song_gen == '_JAZZ' :
+        test_g = np.asarray(0)
+    elif song_gen == '_ROCK' :
+        test_g = np.asarray(1)
+    elif song_gen == '_ALL' :
+        test_g = np.asarray(2)
+        
     test_x_ = torch.from_numpy(test_x.astype(np.int64)).to(device).unsqueeze(0)
     test_k_ = torch.from_numpy(test_k.astype(np.int64)).to(device).unsqueeze(0)
     test_m_ = torch.from_numpy(test_m.astype(np.float32)).to(device).unsqueeze(0)
@@ -306,7 +319,7 @@ def test_model(dataset=None,
         render_melody_chord_CMD(y_croot_ind, y_ckind_lab, test_notes, _m2, 
             savepath="GT__{}__s{}_p{}-{}.mid".format(
                 test_name, song_ind, start_point, start_point+maxlen-1,))
-        render_melody_chord_CMD(test_croot_ind, test_ckind_lab, test_notes, _m2, 
+        render_melody_chord_CMD_jazz(test_croot_ind, test_ckind_lab, test_notes, _m2, 
             savepath="Sampled__{}__s{}_{}_p{}-{}.mid".format(
                 test_name, song_ind, exp_name, start_point, start_point+maxlen-1))
 
@@ -317,25 +330,93 @@ def test_model(dataset=None,
         render_melody_chord_HLSD(test_croot_ind, test_ckind_lab, features, test_notes, _m2, 
             savepath="Sampled__{}__s{}_{}_p{}-{}.mid".format(
                 test_name, song_ind, exp_name, start_point, start_point+maxlen-1))
+        
+    result3 = []
+    result3.append(TPSD)
+    result3.append(DICD)
+    result3.append(LD)
+    return result1, gt1, result3
 
 
 
 
 if __name__ == "__main__":
     '''
-    Ex) python3 test.py CMD 0 0 rVTHarm 3 (3)
+    Ex) python3 test.py CMD 0 0 0 JAZZ (3)
     '''
     dataset = sys.argv[1]
-    song_ind = int(sys.argv[2])
-    start_point = int(sys.argv[3])
-    exp_name = sys.argv[4]
-    device_num = int(sys.argv[5])
-    song_gen = int(sys.argv[6])
+    folder_ind = int(sys.argv[2])
+    song_ind = int(sys.argv[3])
+    start_point = int(sys.argv[4])
+    song_gen = sys.argv[5]
+    exp_name = 'VTHarm'
+    device_num = 0
+    
+    # exp_name = sys.argv[5]
+    # device_num = int(sys.argv[6])
+    
     try:
-        lamb = int(sys.argv[7])
+        lamb = int(sys.argv[6])
     except IndexError:
         lamb = None
-
-    test_model(
-        dataset=dataset, song_ind=song_ind, start_point=start_point, 
-        exp_name=exp_name, device_num=device_num, song_gen=song_gen, lamb=lamb, maxlen=16)
+        
+        
+        
+    result1_list = []
+    gt1_list = []
+    result3_list = []
+    
+    
+    for folder in range(3):
+        if folder == 0:
+            song_gen = "_JAZZ"
+        elif folder == 1:
+            sond_gen = "_ROCK"
+        else:
+            song_gen = "_ALL"
+            
+        for song in range(2):
+            result1, gt1, result3 = test_model(
+                dataset=dataset, folder_ind=folder, song_ind=song, start_point=start_point, song_gen=song_gen,
+                exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
+            result1_list.append(result1)
+            gt1_list.append(gt1)
+            result3_list.append(result3)
+            
+    for song in range(2,24):
+        result1, gt1, result3 = test_model(
+            dataset=dataset, folder_ind=0, song_ind=song, start_point=start_point, song_gen=song_gen,
+            exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
+        result1_list.append(result1)
+        gt1_list.append(gt1)
+        result3_list.append(result3)     
+        
+    for song in range(2,18):
+        result1, gt1, result3 = test_model(
+            dataset=dataset, folder_ind=2, song_ind=song, start_point=start_point, song_gen=song_gen,
+            exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
+        result1_list.append(result1)
+        gt1_list.append(gt1)
+        result3_list.append(result3)    
+        
+            
+    result1_avg = np.mean(result1_list, axis=0)
+    gt1_avg = np.mean(gt1_list, axis=0)
+    result3_avg = np.mean(result3_list, axis=0)
+    
+    # 결과를 DataFrame으로 변환하여 CSV로 저장
+    result1_df = pd.DataFrame(result1_avg).transpose()
+    result1_df.columns = ['CHE', 'CC', 'CTR', 'PCS', 'CTD', 'MTD']
+    result1_df.to_csv('result1_avg.csv', index=False)
+    
+    gt1_df = pd.DataFrame(gt1_avg).transpose()
+    gt1_df.columns = ['gCHE','gCC', 'gCTR', 'gPCS', 'gCTD', 'gMTD']
+    gt1_df.to_csv('gt1_avg.csv', index=False)
+    
+    result3_df = pd.DataFrame(result3_avg).transpose()
+    result3_df.columns = ['TPSD', 'DICD', 'LD']
+    result3_df.to_csv('result3_avg.csv', index=False)
+    
+    print("result1_avg:", result1_avg)
+    print("gt1_avg:", gt1_avg)
+    print("result3_avg:", result3_avg)

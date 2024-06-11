@@ -122,6 +122,8 @@ def ind2str(ind, n):
     str_ind = rest*"0" + ind_
     return str_ind 
 
+
+
 def split_sets_CMD():
     '''
     * Total 473 songs
@@ -129,46 +131,57 @@ def split_sets_CMD():
         - 84 songs with no full transposed versions --> val/test 
         - 389 songs (x 12 transposed) --> train
     '''
-    datapath = sep.join(['.','CMD','output'])
-    all_songs = sorted(glob(os.path.join(datapath, "*"+sep)))
+    sep = os.sep
+    
+    # List of (datapath, subdir) pairs
+    subdirs = ['_JAZZ', '_ROCK', '_ALL']
+    base_datapath = sep.join(['.', 'CMD', 'output'])
+    base_train_path = sep.join(['.', 'CMD', 'exp', 'train', 'raw'])
+    base_val_path = sep.join(['.', 'CMD', 'exp', 'val', 'raw'])
+    base_test_path = sep.join(['.', 'CMD', 'exp', 'test', 'raw'])
 
-    test_list = list()
-    for c in all_songs:
-        pieces = sorted(glob(os.path.join(c, 'features.*.npy')))
-        if len(pieces) < 12:
-            test_list.append(c)
-    test_list = sorted(test_list)
-    val_songs = test_list[::2]
-    test_songs = test_list[1::2]
+    for subdir in subdirs:
+        datapath = os.path.join(base_datapath, subdir)
+        all_songs = sorted(glob(os.path.join(datapath, "*" + sep)))
 
-    train_path = sep.join([".","CMD","exp","train","raw"])
-    val_path = sep.join([".","CMD","exp","val","raw"])
-    test_path = sep.join([".","CMD","exp","test","raw"])
+        test_list = []
+        for c in all_songs:
+            pieces = sorted(glob(os.path.join(c, 'features.*.npy')))
+            if len(pieces) < 12:
+                test_list.append(c)
+        test_list = sorted(test_list)
+        val_songs = test_list[::2]
+        test_songs = test_list[1::2]
 
-    if not os.path.exists(train_path):
-        os.makedirs(train_path)
-    if not os.path.exists(val_path):
-        os.makedirs(val_path)
-    if not os.path.exists(test_path):
-        os.makedirs(test_path)
+        train_path = os.path.join(base_train_path, subdir)
+        val_path = os.path.join(base_val_path, subdir)
+        test_path = os.path.join(base_test_path, subdir)
 
-    for c in all_songs:
-        pieces = sorted(glob(os.path.join(c, 'features.*.npy')))
-        c_name = c.split(sep)[-2]
-        if c in val_songs:
-            savepath = val_path
-        elif c in test_songs:
-            savepath = test_path
-        else: savepath = train_path
-        savepath_ = os.path.join(savepath, c_name)
-        if not os.path.exists(savepath_):
-            os.makedirs(savepath_)
-        for p in pieces:
-            p_name = os.path.basename(p).split('.')[-2] # transposed key
-            shutil.copy(p,
-                os.path.join(savepath_, "features.{}.{}.npy".format(c_name, p_name)))
-            print("saved xml data for {}/{}".format(c_name, p_name))
+        if not os.path.exists(train_path):
+            os.makedirs(train_path)
+        if not os.path.exists(val_path):
+            os.makedirs(val_path)
+        if not os.path.exists(test_path):
+            os.makedirs(test_path)
 
+        for c in all_songs:
+            pieces = sorted(glob(os.path.join(c, 'features.*.npy')))
+            c_name = c.split(sep)[-2]
+            if c in val_songs:
+                savepath = val_path
+            elif c in test_songs:
+                savepath = test_path
+            else:
+                savepath = train_path
+            savepath_ = os.path.join(savepath, c_name)
+            if not os.path.exists(savepath_):
+                os.makedirs(savepath_)
+            for p in pieces:
+                p_name = os.path.basename(p).split('.')[-2]  # transposed key
+                shutil.copy(p, os.path.join(savepath_, f"features.{c_name}.{p_name}.npy"))
+                print(f"saved xml data for {c_name}/{p_name}")
+                
+                
 def split_sets_HLSD():
     '''
     * Total 13335 parts
@@ -472,7 +485,7 @@ def decide_ct_simple(chord_kind, chord_root, pitch, pc_norm=False):
 
     return is_chord_tone, chord_tones
 
-def make_pianorolls_with_onset(notes, measures, measures_dict, inds, chord_type=None):
+def make_pianorolls_with_onset(notes, measures, measures_dict, inds, subdir, chord_type=None):
 
     FI = FeatureIndex(dataset="CMD")
 
@@ -481,7 +494,7 @@ def make_pianorolls_with_onset(notes, measures, measures_dict, inds, chord_type=
     maxlen = int(maxlen_time // unit)
     note_roll = np.zeros([maxlen, 89])
     key_roll = np.zeros([maxlen, 12])
-    gen_roll = np.zeros([maxlen, 2])
+    gen_roll = np.zeros([maxlen, 3])
     if chord_type == "all":
         chord_roll = np.zeros([maxlen, 156])
     elif chord_type == "simple":
@@ -546,7 +559,15 @@ def make_pianorolls_with_onset(notes, measures, measures_dict, inds, chord_type=
             note_roll[start:end, pitch] = 1
             onset_roll[start, 0] = 1
             key_roll [start:end, key] = 1
-            gen_roll [start:end, 0] = 1
+            if subdir == '_JAZZ':
+                gn = 0
+            elif subdir == '_ROCK':
+                gn = 1
+            elif subdir == '_ALL':
+                gn = 2
+            else:
+                gn = -1
+            gen_roll [start:end, gn] = 1
 
     '''
     4/4 measure -->> 16 units 
@@ -599,7 +620,7 @@ def make_pianorolls_with_onset(notes, measures, measures_dict, inds, chord_type=
     
     return note_roll, chord_roll, gen_roll, key_roll, beat_roll, onset_roll, onset_roll_xml, note_ind_onset # 여기
 
-def get_roll_CMD(features, chord_type=None):
+def get_roll_CMD(features, subdir, chord_type=None):
     '''
     This function is especially for Chord-Melody-Dataset
     in which each measure includes 2 chords in 1/2 measure length
@@ -664,7 +685,7 @@ def get_roll_CMD(features, chord_type=None):
                 continue
         
     note_roll, chord_roll, gen_roll, key_roll, beat_roll, onset_roll, onset_roll_xml, note_ind_onset = \
-        make_pianorolls_with_onset(note_list, measure_list, measures, ind_list, chord_type=chord_type)
+        make_pianorolls_with_onset(note_list, measure_list, measures, ind_list, subdir, chord_type=chord_type)
 
     return note_roll, chord_roll, gen_roll, key_roll, beat_roll, onset_roll, onset_roll_xml, note_ind_onset
 
@@ -823,166 +844,177 @@ def get_roll_HLSD(features, chord_type=None):
 
     return note_roll, chord_roll, mode, onset_roll, onset_roll_xml, note_ind_onset
 
+                
+                
+                
+                
+                
 def save_batches_CMD(chord_type='simple'):
     #
     #pdb.set_trace()    
     #
     print("Saving batches...")
 
-    parent_path = sep.join(['.','CMD','exp'])
-    orig_path = sep.join(['.','CMD','dataset'])
+    sep = os.sep
+    parent_path = sep.join(['.', 'CMD', 'exp'])
+    orig_path = sep.join(['.', 'CMD', 'dataset'])
     groups = sorted(glob(os.path.join(parent_path, "*"+sep)))
     maxlen, hop = 16, 8
     chord_list = list()
+    subdirs = ['_JAZZ', '_ROCK', '_ALL']  # Define subdirectories
 
-    for g, group in enumerate(groups): # train/val/test
-        # group = groups[1]
-        datapath = os.path.join(group, 'raw')
-        savepath = os.path.join(group, "batch")
-        if not os.path.exists(savepath):
-            os.makedirs(savepath)
-        categs = sorted(glob(os.path.join(datapath, '*'+sep)))
-        if len(categs) == 0:
-            print("no feature files in {}".format(os.path.dirname(datapath)))
-            continue
+    for g, group in enumerate(groups):  # train/val/test
+        for subdir in subdirs:
+            datapath = os.path.join(group, 'raw', subdir)
+            savepath = os.path.join(group, "batch")
+            if not os.path.exists(savepath):
+                os.makedirs(savepath)
+            categs = sorted(glob(os.path.join(datapath, '*' + sep)))
+            if len(categs) == 0:
+                print("no feature files in {}".format(os.path.dirname(datapath)))
+                continue
 
-        for c, categ in enumerate(categs):
-            #
-            #pdb.set_trace()    
-            #
-
-            # categ = categs[0]
-            c_name = categ.split(sep)[-2]
-            pieces = sorted(glob(os.path.join(categ, 'features.*.npy')))
-
-            for piece in pieces:
-                # piece = pieces[0]
-                # p_name -> a, as, b ...
-                p_name = os.path.basename(piece).split('.')[-2]
-                # features를 가져옴
-                features = np.load(piece, allow_pickle=True).tolist()
-
-                # collect chord types
-                # notes -> time position에 따라 근음 및 mode(major 인지 minor 인지) pitch 가져옴
-                # measures -> 코드 종류 및 degrees
-                notes, measures = features
-                # measures에 기록된 코드를 순차적으로 가져와 chord_list에 추가
-                for measure in measures:
-                    chords = measure[1]['chord']
-                    for chord in chords:
-                        if chord['kind'] != 'none':
-                            chord_name = "{}_{}".format(chord['kind'], chord['degrees'])
-                            if chord_name not in chord_list:
-                                chord_list.append(chord_name)
-                # print(p_name)                
-
-                # get onehot data
-                # onehot 데이터를 생성
+            for c, categ in enumerate(categs):
                 #
                 #pdb.set_trace()    
                 #
-                inp, oup, gen, key, beat, onset, onset_xml, inds = get_roll_CMD(features, chord_type=chord_type)
-                # get indices where new chord
-                # 새로운 코드가 나타나는 index를 뽑음
-                new_chord_ind = [i for i, c in enumerate(onset[:,1]) if c == 1]
-                new_chord_ind.append(len(inp))
 
-                # make sure new_chord_inds are equally distanced
-                prev_ind = None 
-                for c in new_chord_ind: 
-                    if prev_ind is not None:
-                        # print(c - prev_ind) 
-                        assert c - prev_ind == 8
-                    prev_ind = c
+                # categ = categs[0]
+                c_name = categ.split(sep)[-2]
+                pieces = sorted(glob(os.path.join(categ, 'features.*.npy')))
 
-                # save batch 
-                #
-                #pdb.set_trace()    
-                # 
-                # onehot 인코딩한 데이터 처리
-                # 16+1개 만큼 코드를 뽑아서 16+1번째 코드가 나오는 마디까지 end로 설정
-                # in1_은 onehot 인코딩한 input에서 16+1번째 코드가 나오는 부분까지 잘라 생성
-                # (528, 89)이고 첫번째 코드 위치가 16, 16번째 코드 위치가 144일 경우, 
-                # (128, 89)로 자름
-                num = 1
-                for b in range(0, len(new_chord_ind), hop):
+                for piece in pieces:
+                    # piece = pieces[0]
+                    # p_name -> a, as, b ...
+                    p_name = os.path.basename(piece).split('.')[-2]
+                    # features를 가져옴
+                    features = np.load(piece, allow_pickle=True).tolist()
+
+                    # collect chord types
+                    # notes -> time position에 따라 근음 및 mode(major 인지 minor 인지) pitch 가져옴
+                    # measures -> 코드 종류 및 degrees
+                    notes, measures = features
+                    # measures에 기록된 코드를 순차적으로 가져와 chord_list에 추가
+                    for measure in measures:
+                        chords = measure[1]['chord']
+                        for chord in chords:
+                            if chord['kind'] != 'none':
+                                chord_name = "{}_{}".format(chord['kind'], chord['degrees'])
+                                if chord_name not in chord_list:
+                                    chord_list.append(chord_name)
+                    # print(p_name)                
+
+                    # get onehot data
+                    # onehot 데이터를 생성
+                    #
+                    #pdb.set_trace()    
+                    #
+                    inp, oup, gen, key, beat, onset, onset_xml, inds = get_roll_CMD(features, subdir, chord_type=chord_type)
+                    # get indices where new chord
+                    # 새로운 코드가 나타나는 index를 뽑음
+                    new_chord_ind = [i for i, c in enumerate(onset[:, 1]) if c == 1]
+                    new_chord_ind.append(len(inp))
+
+                    # make sure new_chord_inds are equally distanced
+                    prev_ind = None
+                    for c in new_chord_ind:
+                        if prev_ind is not None:
+                            # print(c - prev_ind) 
+                            assert c - prev_ind == 8
+                        prev_ind = c
+
+                    # save batch 
                     #
                     #pdb.set_trace()    
                     # 
-                    ind = ind2str(num, 3)
-                    chord_ind = new_chord_ind[b:b+maxlen+1]
-                    start, end = chord_ind[0], chord_ind[-1] # (maxlen+1)th chord
-                    in1_ = inp[start:end]
-                    key_ = key[start:end]
-                    beat_ = beat[start:end]
-                    nnew_ = onset[start:end, :1]
-                    cnew_ = onset[start:end, -1:]
-                    nnew2_ = onset_xml[start:end, :1]
-                    cnew2_ = onset_xml[start:end, -1:]
-                      
-                    note_ind = [i for i, n in enumerate(nnew_) if n == 1]
-                    # roll2note 
-                    in2_ = make_align_matrix_roll2note(in1_, nnew_)
-                    # note2chord
-                    in3_ = make_align_matrix_note2chord(nnew_, cnew_)
-                    
-                    # get data in different units 
-                    key_note = np.asarray([key_[n] for n in note_ind])
-                    beat_note = np.asarray([beat_[n] for n in note_ind])
-                    cnew_note = np.asarray([cnew_[n] for n in note_ind])
-                    in4_ = np.concatenate([key_note, cnew_note, beat_note], axis=-1)
-                    out1_ = np.asarray([oup[c] for c in chord_ind[:-1]])
+                    # onehot 인코딩한 데이터 처리
+                    # 16+1개 만큼 코드를 뽑아서 16+1번째 코드가 나오는 마디까지 end로 설정
+                    # in1_은 onehot 인코딩한 input에서 16+1번째 코드가 나오는 부분까지 잘라 생성
+                    # (528, 89)이고 첫번째 코드 위치가 16, 16번째 코드 위치가 144일 경우, 
+                    # (128, 89)로 자름
+                    num = 1
+                    for b in range(0, len(new_chord_ind), hop):
+                        #
+                        #pdb.set_trace()    
+                        # 
+                        ind = ind2str(num, 3)
+                        chord_ind = new_chord_ind[b:b + maxlen + 1]
+                        start, end = chord_ind[0], chord_ind[-1]  # (maxlen+1)th chord
+                        in1_ = inp[start:end]
+                        key_ = key[start:end]
+                        beat_ = beat[start:end]
+                        nnew_ = onset[start:end, :1]
+                        cnew_ = onset[start:end, -1:]
+                        nnew2_ = onset_xml[start:end, :1]
+                        cnew2_ = onset_xml[start:end, -1:]
 
-                    # check cnew 
-                    cnew_note = np.matmul(cnew_.T, in2_).T # frame2note
-                    if np.array_equal(cnew_note, np.sign(cnew_note)) is False:
-                        print(c_name, p_name)
-                        raise AssertionError
-                    
-                    # if batch is shorter than 4 chords
-                    if len(out1_) < 4: 
-                        continue
-                    
-                    # if batch only contains rests
-                    pitch = np.argmax(in1_, axis=-1)
-                    uniq_pitch = np.unique(pitch)
-                    if len(uniq_pitch) and uniq_pitch[0] == 88:
-                        continue
+                        note_ind = [i for i, n in enumerate(nnew_) if n == 1]
+                        # roll2note 
+                        in2_ = make_align_matrix_roll2note(in1_, nnew_)
+                        # note2chord
+                        in3_ = make_align_matrix_note2chord(nnew_, cnew_)
 
-                    assert in1_.shape[0] == in2_.shape[0]
-                    assert in2_.shape[1] == in4_.shape[0]
-                    assert in3_.shape[1] == out1_.shape[0]
+                        # get data in different units 
+                        key_note = np.asarray([key_[n] for n in note_ind])
+                        beat_note = np.asarray([beat_[n] for n in note_ind])
+                        cnew_note = np.asarray([cnew_[n] for n in note_ind])
+                        in4_ = np.concatenate([key_note, cnew_note, beat_note], axis=-1)
+                        out1_ = np.asarray([oup[c] for c in chord_ind[:-1]])
 
-                    # save batch
-                    savename_x = os.path.join(savepath, '{}.{}.batch_x.{}.npy'.format(
-                        c_name.lower(), p_name.lower(), ind))
-                    savename_c = os.path.join(savepath, '{}.{}.batch_c.{}.npy'.format(
-                        c_name.lower(), p_name.lower(), ind))
-                    savename_y = os.path.join(savepath, '{}.{}.batch_y.{}.npy'.format(
-                        c_name.lower(), p_name.lower(), ind))
-                    savename_n = os.path.join(savepath, '{}.{}.batch_n.{}.npy'.format(
-                        c_name.lower(), p_name.lower(), ind)) # roll2note mat
-                    savename_m = os.path.join(savepath, '{}.{}.batch_m.{}.npy'.format(
-                        c_name.lower(), p_name.lower(), ind)) # note2chord mat
-                    savename_g = os.path.join(savepath, '{}.{}.batch_g.{}.npy'.format(
-                        c_name.lower(), p_name.lower(), ind))
-                    
-                    # print('gen : ', gen)
-                    # print('C : ', in4_)
+                        # check cnew 
+                        cnew_note = np.matmul(cnew_.T, in2_).T  # frame2note
+                        if np.array_equal(cnew_note, np.sign(cnew_note)) is False:
+                            print(c_name, p_name)
+                            raise AssertionError
 
-                    np.save(savename_x, in1_)
-                    np.save(savename_n, in2_)
-                    np.save(savename_m, in3_)
-                    np.save(savename_c, in4_)
-                    np.save(savename_y, out1_)
-                    np.save(savename_g, gen)
+                        # if batch is shorter than 4 chords
+                        if len(out1_) < 4:
+                            continue
 
-                    print("saved batches for {} {} --> inp size: {} / oup size: {}      ".format(
-                        c_name, p_name, in1_.shape, out1_.shape), end='\r') 
-                    num += 1
-                print("saved batches for {} {}".format(c_name, p_name))
+                        # if batch only contains rests
+                        pitch = np.argmax(in1_, axis=-1)
+                        uniq_pitch = np.unique(pitch)
+                        if len(uniq_pitch) and uniq_pitch[0] == 88:
+                            continue
+
+                        assert in1_.shape[0] == in2_.shape[0]
+                        assert in2_.shape[1] == in4_.shape[0]
+                        assert in3_.shape[1] == out1_.shape[0]
+
+                        # save batch
+                        savename_x = os.path.join(savepath, '{}.{}.batch_x.{}.npy'.format(
+                            c_name.lower(), p_name.lower(), ind))
+                        savename_c = os.path.join(savepath, '{}.{}.batch_c.{}.npy'.format(
+                            c_name.lower(), p_name.lower(), ind))
+                        savename_y = os.path.join(savepath, '{}.{}.batch_y.{}.npy'.format(
+                            c_name.lower(), p_name.lower(), ind))
+                        savename_n = os.path.join(savepath, '{}.{}.batch_n.{}.npy'.format(
+                            c_name.lower(), p_name.lower(), ind))  # roll2note mat
+                        savename_m = os.path.join(savepath, '{}.{}.batch_m.{}.npy'.format(
+                            c_name.lower(), p_name.lower(), ind))  # note2chord mat
+                        savename_g = os.path.join(savepath, '{}.{}.batch_g.{}.npy'.format(
+                            c_name.lower(), p_name.lower(), ind))
+
+                        # print('gen : ', gen)
+                        # print('C : ', in4_)
+
+                        np.save(savename_x, in1_)
+                        np.save(savename_n, in2_)
+                        np.save(savename_m, in3_)
+                        np.save(savename_c, in4_)
+                        np.save(savename_y, out1_)
+                        np.save(savename_g, gen)
+
+                        print("saved batches for {} {} --> inp size: {} / oup size: {}      ".format(
+                            c_name, p_name, in1_.shape, out1_.shape), end='\r')
+                        num += 1
+                    print("saved batches for {} {}".format(c_name, p_name))
     
     # np.save("unique_chord_labels_CMD.npy", np.unique(chord_list))
+
+
+
+
 
 def save_batches_HLSD(chord_type='simple'):    
     print("Saving batches...")
@@ -1186,7 +1218,7 @@ def render_melody_chord_CMD(croots, ckinds, xml_notes, m,
         for cnote in chord_notes:
             pitch = cnote + chord_oct * 12
             midi_cnote = pretty_midi.containers.Note(
-                velocity=84, pitch=pitch, start=onset, end=offset)    
+                velocity=84, pitch=pitch, start=onset, end=offset)    #여기
             # print(midi_cnote)
             midi_notes.append(midi_cnote) 
             chord_track.append(midi_cnote)
@@ -1199,6 +1231,185 @@ def render_melody_chord_CMD(croots, ckinds, xml_notes, m,
     if save_mid is True:
         save_new_midi(
             midi_notes, ccs=None, new_midi_path=savepath, start_zero=True)
+
+    if save_melody is True:
+        save_new_midi(
+            melody_track, ccs=None, new_midi_path=savepath, start_zero=True)
+
+    if save_chord is True:
+        save_new_midi(
+            chord_track, ccs=None, new_midi_path=savepath, start_zero=True)
+
+    if return_mid is True:
+        return [melody_track, chord_track]
+    
+def render_melody_chord_CMD_jazz(croots, ckinds, xml_notes, m, 
+    save_melody=False, save_chord=False, savepath=None, save_mid=True, return_mid=False):
+    
+    prev_note = None
+    midi_notes = list()
+    melody_track = list()
+    chord_track = list()
+    first_onset = np.min([n['note'].note_duration.time_position for n in xml_notes])
+    end_time = 0
+
+    grouped_ind = group_notes_ind(xml_notes)
+    min_oct = int(np.min([int(n['note'].pitch[0][-1]) \
+        for n in xml_notes if n['note'].pitch is not None]))
+
+    for i, note in enumerate(xml_notes):
+        onset = note['note'].note_duration.time_position - first_onset
+        sec = note['note'].note_duration.seconds 
+        dur = note['note'].note_duration.duration
+        measure_dur = note['measure'].duration
+        dur2sec = sec / dur
+        offset = onset + sec
+        # print(onset, offset)
+        if note['note'].pitch is None:
+            pass 
+        elif note == prev_note:
+            pass
+        else:
+            pitch = note['note'].pitch[1]
+            if min_oct <= 3:
+                pitch += (12 * (4-min_oct)) 
+            midi_note = pretty_midi.containers.Note(
+                velocity=108, pitch=pitch, start=onset, end=offset) 
+                
+            midi_notes.append(midi_note)
+            melody_track.append(midi_note)
+
+        prev_note = note
+    melody_offset = offset
+
+    chord_oct = 4
+    chord_sec = 1 # 4/4, 120 BPM
+    notenum = np.sum(m, axis=0)
+    assert len(notenum) == len(croots) == len(ckinds)
+    
+    oddd = 0
+    base_notes = list()
+    harm_notes = list()
+    for croot, ckind in zip(croots, ckinds):    
+           
+        onset = end_time
+        offset = onset + chord_sec
+        # print(start_time, end_time, chord_sec)
+        chord_notes = get_chord_notes(ckind, croot, pc_norm=False)
+        # chord_notes = [chord_notes[0]-12] + chord_notes # add base
+        # print(chord_notes)
+
+        for cnote in chord_notes:
+            pitch = cnote + chord_oct * 12
+            midi_cnote = pretty_midi.containers.Note(
+                velocity=84, pitch=pitch, start=onset+0.25, end=onset+0.5)    #여기
+            # print(midi_cnote)
+            harm_notes.append(midi_cnote) 
+            chord_track.append(midi_cnote)
+        ococ = 3
+        if oddd % 2 == 0:
+            if oddd % 8 == 0:
+                base_first = chord_notes[0] + ococ * 12 + 3
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_first, start=onset, end=onset+0.5)
+                base_notes.append(midi_cnote_comping)
+                
+                base_second = chord_notes[0] + ococ * 12
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_second, start=onset+0.5, end=onset+1)
+                base_notes.append(midi_cnote_comping)
+                
+                base_third = chord_notes[0] + ococ * 12 + 1
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_third, start=onset + 1, end=onset+1.5)
+                base_notes.append(midi_cnote_comping)
+                
+                base_fourth = chord_notes[0] + ococ * 12 + 3
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_fourth, start=onset+1.5, end=onset+2)
+                base_notes.append(midi_cnote_comping)
+                
+            elif oddd % 8 == 2:
+                base_first = chord_notes[0] + ococ * 12 
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_first, start=onset, end=onset+0.5)
+                base_notes.append(midi_cnote_comping)
+                
+                base_second = chord_notes[0] + ococ * 12 + 7
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_second, start=onset+0.5, end=onset+1)
+                base_notes.append(midi_cnote_comping)
+                
+                base_third = chord_notes[0] + ococ * 12 + 5
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_third, start=onset + 1, end=onset+1.5)
+                base_notes.append(midi_cnote_comping)
+                
+                base_fourth = chord_notes[0] + ococ * 12 + 3
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_fourth, start=onset+1.5, end=onset+2)
+                base_notes.append(midi_cnote_comping)
+                
+            elif oddd % 8 == 4:
+                base_first = chord_notes[0] + ococ * 12 
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_first, start=onset, end=onset+0.5)
+                base_notes.append(midi_cnote_comping)
+                
+                base_second = chord_notes[0] + ococ * 12 - 4
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_second, start=onset+0.5, end=onset+1)
+                base_notes.append(midi_cnote_comping)
+                
+                base_third = chord_notes[0] + ococ * 12 - 5
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_third, start=onset + 1, end=onset+1.5)
+                base_notes.append(midi_cnote_comping)
+                
+                base_fourth = chord_notes[0] + ococ * 12 - 6
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_fourth, start=onset+1.5, end=onset+2)
+                base_notes.append(midi_cnote_comping)
+                
+            elif oddd % 8 == 6:
+                base_first = chord_notes[0] + ococ * 12 
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_first, start=onset, end=onset+0.5)
+                base_notes.append(midi_cnote_comping)
+                
+                base_second = chord_notes[0] + ococ * 12 + 5
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_second, start=onset+0.5, end=onset+1)
+                base_notes.append(midi_cnote_comping)
+                
+                base_third = chord_notes[0] + ococ * 12 - 2
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_third, start=onset + 1, end=onset+1.5)
+                base_notes.append(midi_cnote_comping)
+                
+                base_fourth = chord_notes[0] + ococ * 12 + 2
+                midi_cnote_comping = pretty_midi.containers.Note(
+                    velocity=84, pitch=base_fourth, start=onset+1.5, end=onset+2)
+                base_notes.append(midi_cnote_comping)
+        
+        oddd += 1 
+        
+        
+        
+
+        end_time = offset 
+    chord_offset = offset 
+
+    assert melody_offset == chord_offset
+
+    if save_mid is True:
+        save_new_midi2(
+            midi_notes, harm_notes, base_notes, ccs=None, new_midi_path=savepath, start_zero=False)
+        # save_new_midi(
+        #     harm_notes, ccs=None, new_midi_path=savepath, start_zero=True)
+        # save_new_midi(
+        #     base_notes, ccs=None, new_midi_path=savepath, start_zero=True)
+        
 
     if save_melody is True:
         save_new_midi(

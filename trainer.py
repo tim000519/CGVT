@@ -8,6 +8,7 @@ sys.path.append("./models")
 import time
 from glob import glob
 import h5py
+import pandas as pd
 
 import torch
 import torch.nn as nn
@@ -25,15 +26,20 @@ from process_data import FeatureIndex
 from utils.parse_utils import *   
 from data_loader import *
 
+val_loss_list = []
+
+# CSV 파일에 저장할 DataFrame 초기화
+df_columns = ['val_loss', 'recon_chord', 'kld_c']
+val_loss_df = pd.DataFrame(columns=df_columns)
 
 ## TRAINER ##
 def main(dataset=None,
          exp_name=None,
          checkpoint_num=0,
          device_num=0,
-         batch_size=16, # 128
-         batch_size_val=4, # 128 
-         total_epoch=1,
+         batch_size=64, # 128
+         batch_size_val=64, # 128 
+         total_epoch=100,
          hidden=256,
          n_layers=4):
 
@@ -133,8 +139,8 @@ def main(dataset=None,
         val_x, val_k, val_n, val_m, val_y, val_g, device=device)
 
     generator = DataLoader(
-        train_dataset, batch_size=batch_size, num_workers=4, 
-        collate_fn=PadCollate(), shuffle=False, drop_last=True, pin_memory=False) #여기
+        train_dataset, batch_size=batch_size, num_workers=8, 
+        collate_fn=PadCollate(), shuffle=True, drop_last=True, pin_memory=False) #여기
     generator_val = DataLoader(
         val_dataset, batch_size=batch_size_val, num_workers=0, 
         collate_fn=PadCollate(), shuffle=False, pin_memory=False)
@@ -313,6 +319,8 @@ def main(dataset=None,
             val_loss_list.append(
                 [val_loss.detach().item(),
                 recon_chord.detach().item(), kld_c.detach().item()])
+            
+            update_loss_and_save_csv(val_loss, recon_chord, kld_c)
 
             # print losses
             print()
@@ -370,7 +378,19 @@ def main(dataset=None,
 
         prev_epoch_time = time.time()     
         shuf += 1
-
+            
+def update_loss_and_save_csv(val_loss, recon_chord, kld_c, csv_file='val_loss.csv'):
+    global val_loss_df
+    # 손실 값을 추가
+    new_row = {
+        'val_loss': val_loss.detach().item(),
+        'recon_chord': recon_chord.detach().item(),
+        'kld_c': kld_c.detach().item()
+    }
+    val_loss_df = val_loss_df.append(new_row, ignore_index=True)
+    
+    # CSV 파일에 저장
+    val_loss_df.to_csv(csv_file, index=False)
 
 # LOSS FUNCTIONS
 def ST_loss_fn(chord, y, m, mask):

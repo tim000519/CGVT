@@ -32,33 +32,65 @@ Chord Melody Dataset
    where this code belongs to --> /(codeDiretory)/CMD/dataset/abc/...
 '''
 
+# def save_features():
+
+# 	sep = os.sep
+# 	dirname = sep.join(['.','CMD','dataset'])
+# 	savename = sep.join(['.','CMD','output'])
+# 	#pdb.set_trace()  # 실행 중단점 설정
+# 	categs = sorted(glob(os.path.join(dirname, "*{}").format(sep))) # songs
+	
+# 	for categ in categs:
+# 		c_name = categ.split(sep)[-2] # song titles
+# 		files = sorted(glob(os.path.join(categ, "*.xml"))) # 12 keys
+# 		for key, xml in enumerate(files):
+# 			p_name = os.path.basename(xml).split('.')[0] # each key
+# 			input_list = parse_CMD_features(xml, save_csv=True)
+# 			if input_list == False:
+# 				print("measure duration not equals to 2 sec (not 4/4) : {}".format(c_name))
+# 				break
+# 			song_dir = os.path.dirname(xml).split(sep)[-1]
+# 			save_filename = os.path.join(savename, song_dir)
+# 			if not os.path.exists(save_filename):
+# 				os.makedirs(save_filename)
+# 			# save features
+# 			np.save(os.path.join(save_filename, 
+# 				"features.{}.{}.npy".format(c_name, p_name)), input_list)
+
+# 		print("parsed input for: {}".format(c_name))
+  
 def save_features():
 
-	sep = os.sep
-	dirname = sep.join(['.','CMD','dataset'])
-	savename = sep.join(['.','CMD','output'])
-	#pdb.set_trace()  # 실행 중단점 설정
-	categs = sorted(glob(os.path.join(dirname, "*{}").format(sep))) # songs
-	
-	for categ in categs:
-		c_name = categ.split(sep)[-2] # song titles
-		files = sorted(glob(os.path.join(categ, "*.xml"))) # 12 keys
-		for key, xml in enumerate(files):
-			p_name = os.path.basename(xml).split('.')[0] # each key
-			input_list = parse_CMD_features(xml, save_csv=True)
-			if input_list == False:
-				print("measure duration not equals to 2 sec (not 4/4) : {}".format(c_name))
-				break
-			song_dir = os.path.dirname(xml).split(sep)[-1]
-			save_filename = os.path.join(savename, song_dir)
-			if not os.path.exists(save_filename):
-				os.makedirs(save_filename)
-			# save features
-			np.save(os.path.join(save_filename, 
-				"features.{}.{}.npy".format(c_name, p_name)), input_list)
+    sep = os.sep
 
-		print("parsed input for: {}".format(c_name))
+    # List of (dirname, savename) pairs
+    paths = [
+        (sep.join(['.', 'CMD', 'dataset', '_JAZZ']), sep.join(['.', 'CMD', 'output', '_JAZZ'])),
+        (sep.join(['.', 'CMD', 'dataset', '_ROCK']), sep.join(['.', 'CMD', 'output', '_ROCK'])),
+        (sep.join(['.', 'CMD', 'dataset', '_ALL']), sep.join(['.', 'CMD', 'output', '_ALL']))
+    ]
 
+    for dirname, savename in paths:
+        categs = sorted(glob(os.path.join(dirname, "*{}".format(sep))))  # songs
+        
+        for categ in categs:
+            print(categ)
+            c_name = categ.split(sep)[-2]  # song titles
+            files = sorted(glob(os.path.join(categ, "*.xml")))  # 12 keys
+            for key, xml in enumerate(files):
+                p_name = os.path.basename(xml).split('.')[0]  # each key
+                input_list = parse_CMD_features(xml, save_csv=True)
+                if input_list == False:
+                    print("measure duration not equals to 2 sec (not 4/4) : {}".format(c_name))
+                    break
+                song_dir = os.path.dirname(xml).split(sep)[-1]
+                save_filename = os.path.join(savename, song_dir)
+                if not os.path.exists(save_filename):
+                    os.makedirs(save_filename)
+                # save features
+                np.save(os.path.join(save_filename, 
+                    "features.{}.{}.npy".format(c_name, p_name)), input_list)
+        print("parsed input for: {}".format(c_name))
 
 def parse_CMD_features(xml, save_csv=False):
 
