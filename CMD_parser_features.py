@@ -12,6 +12,7 @@ import csv
 
 from decimal import Decimal, getcontext, ROUND_HALF_UP, InvalidOperation
 
+
 from utils.musicxml_parser import MusicXMLDocument
 from utils.parse_utils import *
 
