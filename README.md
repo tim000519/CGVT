@@ -1,4 +1,4 @@
-# Variational Transformer-based Chord Progression Generation with Predefined Melodic Structure and Stylistic Context
+## Variational Transformer-based Chord Progression Generation with Predefined Melodic Structure and Stylistic Context
 * Demo: https://free-pig-6c6.notion.site/Translating-Melody-to-Chord-Structured-and-Flexible-Harmonization-of-Melody-with-Transformer-d03b868e0a964ac280a97795304248e9
 
 This research aims to utilize the Transformer model to learn the long-distance dependencies between melody and harmony, and to generate structurally coherent chords. Additionally, a Variational Autoencoder is applied to capture and reflect the characteristic distribution of chords according to different genres
