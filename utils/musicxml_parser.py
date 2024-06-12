@@ -27,7 +27,7 @@ import fractions
 import xml.etree.ElementTree as ET
 import zipfile
 
-import utils.constant_setting
+import utils.constant_setting as constant_setting
 import six
 import copy 
 

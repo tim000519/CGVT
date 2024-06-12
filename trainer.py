@@ -39,7 +39,7 @@ def main(dataset=None,
          device_num=0,
          batch_size=64, # 128
          batch_size_val=64, # 128 
-         total_epoch=100,
+         total_epoch=4,
          hidden=256,
          n_layers=4):
 
@@ -58,9 +58,6 @@ def main(dataset=None,
         CustomDataset = CMDDataset
         PadCollate = CMDPadCollate
 
-    elif dataset == "HLSD":
-        CustomDataset = HLSDDataset
-        PadCollate = HLSDPadCollate
 
     with h5py.File(train_data, "r") as f:
         train_x = np.asarray(f["x"])
@@ -480,8 +477,8 @@ if __name__ == "__main__":
     - dataset: CMD / HLSD 
     - exp_name: STHarm / VTHarm / rVTHarm
     '''
-    dataset = sys.argv[1]
-    exp_name = sys.argv[2]
+    dataset = "CMD"
+    exp_name = "VTHarm"
     main(dataset=dataset, exp_name=exp_name)
 
 
