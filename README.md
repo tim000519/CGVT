@@ -1,7 +1,7 @@
-## Variational Transformer-based Chord Progression Generation with Predefined Melodic Structure and Stylistic Context
-* Demo: https://free-pig-6c6.notion.site/Translating-Melody-to-Chord-Structured-and-Flexible-Harmonization-of-Melody-with-Transformer-d03b868e0a964ac280a97795304248e9
+## Genre-Conditioned Chord Generation by Variational Transformer with Chord Substitutuions Theory and Relative Position Representations
 
-This research aims to utilize the Transformer model to learn the long-distance dependencies between melody and harmony, and to generate structurally coherent chords. Additionally, a Variational Autoencoder is applied to capture and reflect the characteristic distribution of chords according to different genres
+Recent deep learning approaches for melody harmonization have demonstrated strong performance in generating appropriate chords for melodies. However, many of these approaches have not attempted to control chord progressions to adjust the mood of the music, which can significantly influence the music style even for an identical melody. We propose the Chord Generation Variational Transformer model (CGVT), which can capture the structure of chord progressions commonly used in specific genres, thus enabling the generation of chord progressions suited to the style of the desired genre.
+Additionally, we address the issue arising from previous studies that recognize only a single chord as the correct answer by applying chord substitution theory. By adjusting the loss function to account for chords that have similar qualities within the context of chord progressions, we facilitate faster convergence during model training and enable the generation of more flexible chord progressions.
 
 ## PARSE DATA
 
@@ -10,10 +10,7 @@ This research aims to utilize the Transformer model to learn the long-distance d
 - save raw data as: ./CMD/dataset/abc...
 - run command: python3 process_data.py --dataset CMD 
 
-2) HLSD 
-- download raw data at: https://github.com/wayne391/lead-sheet-dataset
-- save raw data as: ./HLSD/dataset/event/a/a_day_...
-- run command: python3 process_data.py --dataset HLSD 
+2) 
 
 outputs:
 1) saves npy files for the parsed features (saved directory ex: ./CMD/output/~) 
@@ -23,14 +20,8 @@ outputs:
 
 ## TRAIN MODEL
 
-1) STHarm 
-python3 trainer.py [dataset] STHarm
-2) VTHarm 
-python3 trainer.py [dataset] VTHarm
-3) rVTHarm  
-python3 trainer.py [dataset] rVTHarm 
-
-* [dataset] -> CMD or HLSD
+1) CGVT 
+python3 trainer.py CMD VTHarm 
 
 outputs:
 1) model parameters/losses checkpoints (saved filename ex: ./trained/STHarm_CMD)
