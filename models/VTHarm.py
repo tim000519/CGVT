@@ -318,9 +318,10 @@ class MelodyEncoder(nn.Module):
         # print('xnorm : ', x_norm.shape)        
         
         emb = self.embedding(x_norm) + self.frame_pos(x) # [2,128,128]
-        
+        # print('emb : ', emb.shape)
         # note-wise encode
         note = self.comp.mean(emb, nm) # roll2note # [2, 43, 128]
+        # print('shape of note : ', note.shape)
         note = self.linear(note) # [2, 43, 256]
         
         note = torch.cat([k.unsqueeze(1), note], dim=1) # [2, 44, 256]
@@ -331,6 +332,7 @@ class MelodyEncoder(nn.Module):
         # print('note.shape : ', note.shape)
         
         note = note + self.pos(note) # [2, 44, 256]
+        # print('shape of note : ', note.shape)
         note = self.pos_dropout(note) # [2, 44, 256]
         # cm_ = torch.cat([cm[:,:1], cm], dim=1) #[2, 44, 16] 
         
@@ -470,13 +472,16 @@ class Harmonizer(nn.Module):
         # print('chord_ms : ', chord_m.shape)
         ## Encoder ##
         k_emb = self.key_embedding(k.long()) # [batch, 256]
-        g_emb = self.gen_embedding(g.long()) # [batch, 256]
+        g_emb = self.gen_embedding(g.long()) # [batch, 256]        
         query = self.chord_embedding(chord) # [batch, 256]
+        # print('query: ', query.shape)
         key, key_attn = self.melody_encoder(x, k_emb, note_m, chord_m, g_emb)
         c_moments, c = self.context_encoder(query, key, k_emb, chord_m.transpose(1, 2), g_emb)
         
         ## Decoder ##
         sos = g_emb + k_emb + self.proj_c(c)
+        # print('g_emb: ', g_emb.shape)
+        # print('k_emb: ', k_emb.shape)
         # print('sos: ', sos.shape)
         # print('sos: ', sos)
         query = torch.cat([sos.unsqueeze(1), query[:,:-1]], dim=1) 

@@ -58,9 +58,6 @@ def main(dataset=None,
         CustomDataset = CMDDataset
         PadCollate = CMDPadCollate
 
-    elif dataset == "HLSD":
-        CustomDataset = HLSDDataset
-        PadCollate = HLSDPadCollate
 
     with h5py.File(train_data, "r") as f:
         train_x = np.asarray(f["x"])
@@ -205,8 +202,8 @@ def main(dataset=None,
 
                 # compute loss 
                 mask = Mask()
-                loss, recon_chord, kld_c = VT_loss_fn(
-                    c_moments, c, chord, y, m, clab, mask) 
+                loss, recon_chord, kld_c, sub_recon = VT_loss_fn(
+                    c_moments, c, chord, y, m, clab, mask, device) 
 
                 loss.backward()
                 nn.utils.clip_grad_norm_(model.parameters(), 1.)
@@ -313,14 +310,14 @@ def main(dataset=None,
 
             # compute loss 
             mask = Mask()
-            val_loss, recon_chord, kld_c = VT_loss_fn(
-                c_moments, c, chord, Yv, Mv, CLABv, mask) 
+            val_loss, recon_chord, kld_c, sub_recon = VT_loss_fn(
+                c_moments, c, chord, Yv, Mv, CLABv, mask, device) 
 
             val_loss_list.append(
                 [val_loss.detach().item(),
-                recon_chord.detach().item(), kld_c.detach().item()])
+                recon_chord.detach().item(), kld_c.detach().item(),sub_recon.detach().item()])
             
-            update_loss_and_save_csv(val_loss, recon_chord, kld_c)
+            update_loss_and_save_csv(val_loss, recon_chord, kld_c, sub_recon)
 
             # print losses
             print()
@@ -379,13 +376,14 @@ def main(dataset=None,
         prev_epoch_time = time.time()     
         shuf += 1
             
-def update_loss_and_save_csv(val_loss, recon_chord, kld_c, csv_file='val_loss.csv'):
+def update_loss_and_save_csv(val_loss, recon_chord, kld_c, sub_recon, csv_file='val_loss.csv'):
     global val_loss_df
     # 손실 값을 추가
     new_row = {
         'val_loss': val_loss.detach().item(),
         'recon_chord': recon_chord.detach().item(),
-        'kld_c': kld_c.detach().item()
+        'kld_c': kld_c.detach().item(),
+        'sub_recon': sub_recon.detach().item()
     }
     val_loss_df = val_loss_df.append(new_row, ignore_index=True)
     
@@ -404,7 +402,7 @@ def ST_loss_fn(chord, y, m, mask):
 
     return recon_chord
 
-def VT_loss_fn(c_moments, c, chord, y, m, clab, mask):
+def VT_loss_fn(c_moments, c, chord, y, m, clab, mask, device):
 
     # VAE losses
     n, t = y.size(0), y.size(1)
@@ -412,16 +410,83 @@ def VT_loss_fn(c_moments, c, chord, y, m, clab, mask):
     recon_chord = -torch.mean(mask(F.cross_entropy(
         chord.view(-1, 73), y.view(-1), 
         reduction='none').view(n, t, 1), m.transpose(1, 2)))
+    
+    
+    chord = chord.to(device)
+    y = y.to(device)
+    m = m.to(device)
+    predictions = chord.view(-1, 73)  # 10개의 예측 (예를 들어 n*t = 10)
+    labels = y.view(-1)  # 레이블 생성 (0부터 72까지)
+
+    # csv 파일 경로 설정
+    csv_file_path = r'C:\Users\edint\Downloads\Chord_PRO (1)\Chord_PRO\sub_chord.csv'
+
+    # 커스텀 교차 엔트로피 계산
+    loss_values = custom_cross_entropy(predictions, labels, csv_file_path, device)
+    print('loss_values : ', loss_values)
+    
+    loss_values = loss_values.to(device)
+    
+    sub_recon = -torch.mean(mask(loss_values, m.transpose(1, 2)))
+    
 
     kld_c = torch.mean(kld(*c_moments))
 
     # VAE ELBO
-    elbo = recon_chord - 0.1*kld_c
+    elbo = recon_chord - 0.1*kld_c + 0.1*sub_recon
+
 
     # total loss
     total_loss = -elbo # negative to minimize
 
-    return total_loss, recon_chord, kld_c
+    return total_loss, recon_chord, kld_c, sub_recon
+
+# ----------------------------------------------------------------------------------------------
+# csv 파일을 읽고, 각 행을 벡터로 변환하는 함수
+def load_csv_rows(file_path):
+    df = pd.read_csv(file_path, header=None)
+    return df.values  # 각 행을 NumPy 배열로 반환
+
+# 교차 엔트로피를 계산하는 커스텀 함수
+def custom_cross_entropy(predictions, labels, csv_file, device):
+    # CSV 파일에서 행들을 불러옴
+    csv_vectors = load_csv_rows(csv_file)
+    
+    # CSV 벡터를 PyTorch 텐서로 변환
+    csv_vectors = torch.tensor(csv_vectors, dtype=torch.float32)
+    num_classes = csv_vectors.size(1)
+    
+    if predictions.size(1) != num_classes:
+        raise ValueError(f"CSV file rows must have {num_classes} columns, but got {predictions.size(1)}")
+
+    # 소프트맥스를 통해 확률로 변환
+    predictions_softmax = F.softmax(predictions, dim=-1)
+    
+    # 손실을 저장할 리스트
+    loss_list = []
+
+    # 각 예측 및 레이블 쌍에 대해 손실 계산
+    for i in range(predictions.size(0)):
+        label = labels[i].item()  # 현재 레이블
+        
+        if label < 0 or label >= num_classes:
+            raise ValueError(f"Label {label} is out of range for the number of classes {num_classes}")
+
+        # 현재 레이블에 해당하는 CSV 벡터를 가져옴
+        csv_vector = csv_vectors[label]
+        
+        # 소프트맥스 예측과 CSV 벡터의 교차 엔트로피를 계산
+        pred_vector = predictions_softmax[i].to(device)
+        
+        # 직접 교차 엔트로피 계산
+        log_probs = torch.log(pred_vector)
+        csv_vector = csv_vector.to(device)
+        loss = -log_probs.dot(csv_vector)
+        loss_list.append(loss.item())
+    
+    return torch.tensor(loss_list)
+
+# ----------------------------------------------------------------------------------------------
 
 def rVT_loss_fn(c_moments, c, chord, y, m, clab, mask):
 
@@ -477,11 +542,9 @@ if __name__ == "__main__":
     '''
     python3 trainer.py [dataset] [exp_name]
 
-    - dataset: CMD / HLSD 
-    - exp_name: STHarm / VTHarm / rVTHarm
     '''
-    dataset = sys.argv[1]
-    exp_name = sys.argv[2]
+    dataset = 'CMD'
+    exp_name = 'VTHarm'
     main(dataset=dataset, exp_name=exp_name)
 
 

@@ -1,4 +1,4 @@
-from musicxml_parser import MusicXMLDocument
+from utils.musicxml_parser import MusicXMLDocument
 
 import os
 import sys

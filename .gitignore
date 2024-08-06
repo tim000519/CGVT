@@ -1,0 +1,8 @@
+.env
+CMD/
+CMD/output
+*.csv
+trained/
+*.zip
+*.ipynb
+music_OUTPUT/

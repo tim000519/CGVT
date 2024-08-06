@@ -319,7 +319,7 @@ def test_model(dataset=None,
         render_melody_chord_CMD(y_croot_ind, y_ckind_lab, test_notes, _m2, 
             savepath="GT__{}__s{}_p{}-{}.mid".format(
                 test_name, song_ind, start_point, start_point+maxlen-1,))
-        render_melody_chord_CMD_jazz(test_croot_ind, test_ckind_lab, test_notes, _m2, 
+        render_melody_chord_CMD(test_croot_ind, test_ckind_lab, test_notes, _m2, 
             savepath="Sampled__{}__s{}_{}_p{}-{}.mid".format(
                 test_name, song_ind, exp_name, start_point, start_point+maxlen-1))
 
@@ -344,11 +344,11 @@ if __name__ == "__main__":
     '''
     Ex) python3 test.py CMD 0 0 0 JAZZ (3)
     '''
-    dataset = sys.argv[1]
-    folder_ind = int(sys.argv[2])
-    song_ind = int(sys.argv[3])
-    start_point = int(sys.argv[4])
-    song_gen = sys.argv[5]
+    dataset = 'CMD'
+    folder_ind = int(sys.argv[1])
+    song_ind = int(sys.argv[2])
+    start_point = int(sys.argv[3])
+    song_gen = sys.argv[4]
     exp_name = 'VTHarm'
     device_num = 0
     
@@ -360,63 +360,71 @@ if __name__ == "__main__":
     except IndexError:
         lamb = None
         
+    result1, gt1, result3 = test_model(
+        dataset=dataset, folder_ind=1, song_ind=5, start_point=start_point, song_gen='_ROCK',
+        exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
         
         
-    result1_list = []
-    gt1_list = []
-    result3_list = []
+    # result1_list = []
+    # gt1_list = []
+    # result3_list = []
     
-    
-    for folder in range(3):
-        if folder == 0:
-            song_gen = "_JAZZ"
-        elif folder == 1:
-            sond_gen = "_ROCK"
-        else:
-            song_gen = "_ALL"
+    # if(folder_ind == 1000):
+    #     for folder in range(3):
+    #         if folder == 0:
+    #             song_gen = "_JAZZ"
+    #         elif folder == 1:
+    #             sond_gen = "_ROCK"
+    #         else:
+    #             song_gen = "_ALL"
+                
+    #         for song in range(6):
+    #             result1, gt1, result3 = test_model(
+    #                 dataset=dataset, folder_ind=folder, song_ind=song, start_point=start_point, song_gen=song_gen,
+    #                 exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
+    #             result1_list.append(result1)
+    #             gt1_list.append(gt1)
+    #             result3_list.append(result3)
+                
+    #     for song in range(2,24):
+    #         result1, gt1, result3 = test_model(
+    #             dataset=dataset, folder_ind=0, song_ind=song, start_point=start_point, song_gen=song_gen,
+    #             exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
+    #         result1_list.append(result1)
+    #         gt1_list.append(gt1)
+    #         result3_list.append(result3)     
             
-        for song in range(2):
-            result1, gt1, result3 = test_model(
-                dataset=dataset, folder_ind=folder, song_ind=song, start_point=start_point, song_gen=song_gen,
-                exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
-            result1_list.append(result1)
-            gt1_list.append(gt1)
-            result3_list.append(result3)
+    #     for song in range(2,18):
+    #         result1, gt1, result3 = test_model(
+    #             dataset=dataset, folder_ind=2, song_ind=song, start_point=start_point, song_gen=song_gen,
+    #             exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
+    #         result1_list.append(result1)
+    #         gt1_list.append(gt1)
+    #         result3_list.append(result3)    
             
-    for song in range(2,24):
-        result1, gt1, result3 = test_model(
-            dataset=dataset, folder_ind=0, song_ind=song, start_point=start_point, song_gen=song_gen,
-            exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
-        result1_list.append(result1)
-        gt1_list.append(gt1)
-        result3_list.append(result3)     
+                
+    #     result1_avg = np.mean(result1_list, axis=0)
+    #     gt1_avg = np.mean(gt1_list, axis=0)
+    #     result3_avg = np.mean(result3_list, axis=0)
         
-    for song in range(2,18):
-        result1, gt1, result3 = test_model(
-            dataset=dataset, folder_ind=2, song_ind=song, start_point=start_point, song_gen=song_gen,
-            exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
-        result1_list.append(result1)
-        gt1_list.append(gt1)
-        result3_list.append(result3)    
+    #     # 결과를 DataFrame으로 변환하여 CSV로 저장
+    #     result1_df = pd.DataFrame(result1_avg).transpose()
+    #     result1_df.columns = ['CHE', 'CC', 'CTR', 'PCS', 'CTD', 'MTD']
+    #     result1_df.to_csv('result1_avg.csv', index=False)
         
-            
-    result1_avg = np.mean(result1_list, axis=0)
-    gt1_avg = np.mean(gt1_list, axis=0)
-    result3_avg = np.mean(result3_list, axis=0)
-    
-    # 결과를 DataFrame으로 변환하여 CSV로 저장
-    result1_df = pd.DataFrame(result1_avg).transpose()
-    result1_df.columns = ['CHE', 'CC', 'CTR', 'PCS', 'CTD', 'MTD']
-    result1_df.to_csv('result1_avg.csv', index=False)
-    
-    gt1_df = pd.DataFrame(gt1_avg).transpose()
-    gt1_df.columns = ['gCHE','gCC', 'gCTR', 'gPCS', 'gCTD', 'gMTD']
-    gt1_df.to_csv('gt1_avg.csv', index=False)
-    
-    result3_df = pd.DataFrame(result3_avg).transpose()
-    result3_df.columns = ['TPSD', 'DICD', 'LD']
-    result3_df.to_csv('result3_avg.csv', index=False)
-    
-    print("result1_avg:", result1_avg)
-    print("gt1_avg:", gt1_avg)
-    print("result3_avg:", result3_avg)
+    #     gt1_df = pd.DataFrame(gt1_avg).transpose()
+    #     gt1_df.columns = ['gCHE','gCC', 'gCTR', 'gPCS', 'gCTD', 'gMTD']
+    #     gt1_df.to_csv('gt1_avg.csv', index=False)
+        
+    #     result3_df = pd.DataFrame(result3_avg).transpose()
+    #     result3_df.columns = ['TPSD', 'DICD', 'LD']
+    #     result3_df.to_csv('result3_avg.csv', index=False)
+        
+    #     print("result1_avg:", result1_avg)
+    #     print("gt1_avg:", gt1_avg)
+    #     print("result3_avg:", result3_avg)
+        
+    # else:
+    #      result1, gt1, result3 = test_model(
+    #         dataset=dataset, folder_ind=0, song_ind=song_ind, start_point=start_point, song_gen=song_gen,
+    #         exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
