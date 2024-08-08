@@ -1,8 +1,12 @@
 .env
 CMD/
 CMD/output
+CMD/dataset
+CMD/*
 *.csv
 trained/
 *.zip
 *.ipynb
 music_OUTPUT/
+*.xml
+__pycahe__/

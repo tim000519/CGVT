@@ -72,13 +72,6 @@ class FeatureIndex(object):
             uniq_chords_simple.append(new_lab)
         return np.unique(uniq_chords_simple)
 
-    def simplify_all_chord_labels_HLSD(self, uniq_chords):
-        uniq_chords_simple = list()
-        for c in uniq_chords:
-            new_lab = self.simplify_chord_label_HLSD(c)
-            uniq_chords_simple.append(new_lab)
-        return np.unique(uniq_chords_simple)
-
     def simplify_chord_label_CMD(self, c):
         labs = c.split("_")
         lab = labs[0]
@@ -618,6 +611,9 @@ def get_roll_CMD(features, subdir, chord_type=None):
     note_roll, chord_roll, gen_roll, key_roll, beat_roll, onset_roll, onset_roll_xml, note_ind_onset = \
         make_pianorolls_with_onset(note_list, measure_list, measures, ind_list, subdir, chord_type=chord_type)
 
+    return note_roll, chord_roll, gen_roll, key_roll, beat_roll, onset_roll, onset_roll_xml, note_ind_onset             
+                
+                
     return note_roll, chord_roll, gen_roll, key_roll, beat_roll, onset_roll, onset_roll_xml, note_ind_onset
 
                 
@@ -785,6 +781,12 @@ def save_batches_CMD(chord_type='simple'):
                     print("saved batches for {} {}".format(c_name, p_name))
     
     # np.save("unique_chord_labels_CMD.npy", np.unique(chord_list))
+
+
+
+
+
+
 
 
 def create_h5_dataset(dataset=None, setname=None): # save npy files into one hdf5 dataset

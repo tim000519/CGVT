@@ -39,7 +39,7 @@ def main(dataset=None,
          device_num=0,
          batch_size=64, # 128
          batch_size_val=64, # 128 
-         total_epoch=100,
+         total_epoch=4,
          hidden=256,
          n_layers=4):
 
