@@ -9,4 +9,4 @@ trained/
 *.ipynb
 music_OUTPUT/
 *.xml
-__pycahe__/
+__pycache__/
