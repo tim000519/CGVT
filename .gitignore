@@ -1,8 +1,5 @@
 .env
 CMD/
-CMD/output
-CMD/dataset
-CMD/*
 *.csv
 trained/
 *.zip
@@ -10,3 +7,6 @@ trained/
 music_OUTPUT/
 *.xml
 __pycache__/
+
+!result1_avg.csv
+!result2_avg.csv
