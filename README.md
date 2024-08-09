@@ -8,9 +8,9 @@ Additionally, we address the issue arising from previous studies that recognize 
 1) CMD: 
 - download raw data at: https://github.com/shiehn/chord-melody-dataset
 - save raw data as: ./CMD/dataset/abc...
-- run command: python3 process_data.py --dataset CMD 
+- run command: python -m process_data 
 
-2) 
+2) MuseScore
 
 outputs:
 1) saves npy files for the parsed features (saved directory ex: ./CMD/output/~) 
@@ -21,14 +21,14 @@ outputs:
 ## TRAIN MODEL
 
 1) CGVT 
-python3 trainer.py CMD VTHarm 
+python -m trainer 
 
 outputs:
 1) model parameters/losses checkpoints (saved filename ex: ./trained/STHarm_CMD)
 
 
 ## TEST MODEL 
-python3 test.py [dataset] [song_ind] [start_point] [model_name] [device_num] [alpha]
+python -m test [dataset] [song_ind] [start_point] [model_name] [device_num] [alpha]
 
 * [dataset] -> CMD or HLSD 
 * [song_ind] -> index of test files 
