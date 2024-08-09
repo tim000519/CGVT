@@ -1,12 +1,17 @@
 .env
 CMD/
 *.csv
-trained/
+trained_model/
+trashcan/
 *.zip
 *.ipynb
 music_OUTPUT/
 *.xml
 __pycache__/
+_Metric_Results_sub/
 
 !result1_avg.csv
 !result2_avg.csv
+!val_loss.csv
+!sub_chord_diagOne.csv
+!sub_chord.csv
