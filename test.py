@@ -160,7 +160,7 @@ def test_model(dataset=None,
     Mask = model.Mask
     Compress = model.Compress
 
-    model_path = "./trained/{}_{}".format(exp_name, dataset)
+    model_path = "./trained/{}_{}_filled1_10per".format(exp_name, dataset)
     device = torch.device("cuda:{}".format(device_num))
     if torch.cuda.is_available():
         torch.cuda.set_device(device_num) 
@@ -278,9 +278,9 @@ def test_model(dataset=None,
 
 if __name__ == "__main__":
     '''
-    Ex) python3 test.py CGVT 0 0 0 JAZZ (3)
+    Ex) python3 test.py  1000 0 0 0 JAZZ (3)
     '''
-    dataset = 'CGVT'
+    dataset = 'CMD'
     folder_ind = int(sys.argv[1])
     song_ind = int(sys.argv[2])
     start_point = int(sys.argv[3])
@@ -296,9 +296,9 @@ if __name__ == "__main__":
     except IndexError:
         lamb = None
         
-    result1, gt1, result3 = test_model(
-        dataset=dataset, folder_ind=1, song_ind=5, start_point=start_point, song_gen='_ROCK',
-        exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
+    # result1, gt1, result3 = test_model(
+    #     dataset=dataset, folder_ind=1, song_ind=5, start_point=start_point, song_gen='_ROCK',
+    #     exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
         
         
     result1_list = []
@@ -314,7 +314,7 @@ if __name__ == "__main__":
             else:
                 song_gen = "_ALL"
                 
-            for song in range(6):
+            for song in range(2):
                 result1, gt1, result3 = test_model(
                     dataset=dataset, folder_ind=folder, song_ind=song, start_point=start_point, song_gen=song_gen,
                     exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
@@ -324,7 +324,7 @@ if __name__ == "__main__":
                 
         for song in range(2,24):
             result1, gt1, result3 = test_model(
-                dataset=dataset, folder_ind=0, song_ind=song, start_point=start_point, song_gen=song_gen,
+                dataset=dataset, folder_ind=0, song_ind=song, start_point=start_point, song_gen="_JAZZ",
                 exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
             result1_list.append(result1)
             gt1_list.append(gt1)
@@ -332,7 +332,7 @@ if __name__ == "__main__":
             
         for song in range(2,18):
             result1, gt1, result3 = test_model(
-                dataset=dataset, folder_ind=2, song_ind=song, start_point=start_point, song_gen=song_gen,
+                dataset=dataset, folder_ind=2, song_ind=song, start_point=start_point, song_gen="_ALL",
                 exp_name=exp_name, device_num=device_num, lamb=lamb, maxlen=16)
             result1_list.append(result1)
             gt1_list.append(gt1)
@@ -346,7 +346,7 @@ if __name__ == "__main__":
         # 결과를 DataFrame으로 변환하여 CSV로 저장
         result1_df = pd.DataFrame(result1_avg).transpose()
         result1_df.columns = ['CHE', 'CC', 'CTR', 'PCS', 'CTD', 'MTD']
-        result1_df.to_csv('result1_avg.csv', index=False)
+        result1_df.to_csv('./Metric_Results/result1_avg.csv', index=False)
         
         gt1_df = pd.DataFrame(gt1_avg).transpose()
         gt1_df.columns = ['gCHE','gCC', 'gCTR', 'gPCS', 'gCTD', 'gMTD']
@@ -354,7 +354,7 @@ if __name__ == "__main__":
         
         result3_df = pd.DataFrame(result3_avg).transpose()
         result3_df.columns = ['TPSD', 'DICD', 'LD']
-        result3_df.to_csv('result3_avg.csv', index=False)
+        result3_df.to_csv('./Metric_Results/result2_avg.csv', index=False)
         
         print("result1_avg:", result1_avg)
         print("gt1_avg:", gt1_avg)

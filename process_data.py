@@ -802,7 +802,7 @@ def create_h5_dataset(dataset=None, setname=None): # save npy files into one hdf
         x5_path = [np.string_(x) for x in sorted(glob(os.path.join(batch_path, "*.batch_g.*.npy")))]
 
         # save h5py dataset
-        f = h5py.File("{}_{}.h5".format(dataset, setname), "w")
+        f = h5py.File("./h5file/{}_{}.h5".format(dataset, setname), "w")
         dt = h5py.special_dtype(vlen=str) # save data as string type
         f.create_dataset("x", data=x1_path, dtype=dt)
         f.create_dataset("m", data=x2_path, dtype=dt)

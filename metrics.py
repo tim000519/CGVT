@@ -261,7 +261,7 @@ def pad_to_longer_sequence(a, b):
     return a_, b_, mask
 
 
-def levenshtein(s1, s2, debug=False):
+def levenshtein(s1,  s2, debug=False):
     '''
     Ref: https://lovit.github.io/nlp/2018/08/28/levenshtein_hangle/
     '''
@@ -311,6 +311,10 @@ def chord_similarity(model_results, GT_results):
 
     # levenstein distance 
     LD = levenshtein(out, gout) / len(out)
+    print('LD : ', LD)
+
+    print('out : ', out)
+    print('gout :', gout)
 
 
     return TPSD, DICD, LD
