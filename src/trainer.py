@@ -54,8 +54,6 @@ def main(dataset=None,
     now = datetime.now()
     timestamp = now.strftime("%m%d%H%M")  # MMddHHmm 형식
     model_now = os.path.join(model_path, "{}_{}_{}".format(exp_name, dataset, timestamp))
-    if not os.path.exists(model_now):
-        os.makedirs(model_now)
 
     train_data = os.path.join(datapath, './h5file/{}_train.h5'.format(dataset))
     val_data = os.path.join(datapath, './h5file/{}_val.h5'.format(dataset))
@@ -375,6 +373,7 @@ def main(dataset=None,
                 'optimizer': trainer.state_dict(),
                 'loss_train': np.asarray(loss_list),
                 'loss_val': np.asarray(val_loss_list)},
+                # os.path.join(model_path, "{}_{}".format(exp_name, dataset)))
                 model_now)
 
             _time3 = time.time()
@@ -432,7 +431,7 @@ def VT_loss_fn(c_moments, c, chord, y, m, clab, mask, device):
 
     # 커스텀 교차 엔트로피 계산
     loss_values = custom_cross_entropy(predictions, labels, csv_file_path, device)
-    print('loss_values : ', loss_values)
+    # print('loss_values : ', loss_values)
     
     loss_values = loss_values.to(device)
     
@@ -548,10 +547,7 @@ def kld(mu, logvar, q_mu=None, q_logvar=None):
 
 
 if __name__ == "__main__":
-    '''
-    python3 trainer.py [dataset] [exp_name]
 
-    '''
     dataset = 'CMD'
     exp_name = 'VTHarm'
     main(dataset=dataset, exp_name=exp_name)
