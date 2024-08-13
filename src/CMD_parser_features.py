@@ -3,7 +3,8 @@ import pdb
 import os
 import sys
 sys.setrecursionlimit(100000)
-sys.path.append("./utils")
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import numpy as np
 from glob import glob
 from fractions import Fraction
@@ -61,9 +62,8 @@ Chord Melody Dataset
 # 		print("parsed input for: {}".format(c_name))
   
 def save_features():
-
+	
     sep = os.sep
-
     # List of (dirname, savename) pairs
     paths = [
         (sep.join(['.', 'CMD', 'dataset', '_JAZZ']), sep.join(['.', 'CMD', 'output', '_JAZZ'])),
@@ -439,4 +439,4 @@ class CMDFeatures_measure(object):
 
 
 if __name__ == '__main__':
-    save_features()
+	save_features()

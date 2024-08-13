@@ -1170,7 +1170,7 @@ if __name__ == "__main__":
 
     print()
     print("---------- START PARSING CMD DATASET ----------")
-    subprocess.call(['python', 'CMD_parser_features.py'])
+    subprocess.call(['python', 'src/CMD_parser_features.py'])
     print("---------- END PARSING CMD DATASET ----------")
     print()
     print("---------- START SAVING CMD BATCHES ----------")
