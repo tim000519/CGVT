@@ -3,7 +3,6 @@ CMD/
 *.csv
 trained_model/
 trashcan/
-*.zip
 *.ipynb
 music_OUTPUT/
 *.xml
