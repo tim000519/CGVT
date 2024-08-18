@@ -322,8 +322,9 @@ def main(dataset=None,
             val_loss_list.append(
                 [val_loss.detach().item(),
                 recon_chord.detach().item(), kld_c.detach().item(),sub_recon.detach().item()])
-            
-            update_loss_and_save_csv(val_loss, recon_chord, kld_c, sub_recon)
+        
+            csv_file = '_Metric_Results/val_loss_{}.csv'.format(timestamp)    
+            update_loss_and_save_csv(val_loss, recon_chord, kld_c, sub_recon, csv_file=csv_file)
 
             # print losses
             print()
