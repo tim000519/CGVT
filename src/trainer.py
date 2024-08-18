@@ -40,7 +40,7 @@ def main(dataset=None,
          device_num=0,
          batch_size=64, # 128
          batch_size_val=64, # 128 
-         total_epoch=4,
+         total_epoch=100,
          hidden=256,
          n_layers=4):
 
@@ -427,7 +427,7 @@ def VT_loss_fn(c_moments, c, chord, y, m, clab, mask, device):
 
     # csv 파일 경로 설정
     current_dir = os.path.dirname(__file__)
-    csv_file_path = os.path.join(current_dir, '..', 'sub_chord', 'sub_chord.csv')
+    csv_file_path = os.path.join(current_dir, '..', 'sub_chord', 'sub_chord_diagOne.csv')
 
     # 커스텀 교차 엔트로피 계산
     loss_values = custom_cross_entropy(predictions, labels, csv_file_path, device)
