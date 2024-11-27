@@ -1,6 +1,8 @@
 ## Substitution Chord Table
 
 ![sub1](https://github.com/user-attachments/assets/46266d75-6b27-4c07-a1d5-2e5819dcfc71)
+![image](https://github.com/user-attachments/assets/8c474d1c-8ff4-4259-a2a3-42e49dba5969)
+
 
 ## Style-VT: Style Conditioned Chord Generation by Variational Transformer with Chord Substitution Theory
 
